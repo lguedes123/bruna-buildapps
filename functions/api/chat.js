@@ -25,20 +25,14 @@ export async function onRequestPost(context) {
     const systemText = [prompt, "", "Fluxo:", flow].join("\n").trim();
 
     if (config.provider === "openai") {
-      const secretObj = await env.BUILDAPPS.get(env.APP_SECRET_OPENAI_KEY);
-      if (!secretObj) return json({ error: "segredo OpenAI ausente" }, 500);
-
-      const secret = await secretObj.json();
-      const result = await callOpenAI(secret.api_key, config, systemText, messages);
+      if (!env.OPENAI_API_KEY) return json({ error: "segredo OpenAI ausente" }, 500);
+      const result = await callOpenAI(env.OPENAI_API_KEY, config, systemText, messages);
       return json({ provider: "openai", output: result });
     }
 
     if (config.provider === "gemini") {
-      const secretObj = await env.BUILDAPPS.get(env.APP_SECRET_GEMINI_KEY);
-      if (!secretObj) return json({ error: "segredo Gemini ausente" }, 500);
-
-      const secret = await secretObj.json();
-      const result = await callGemini(secret.api_key, config, systemText, messages);
+      if (!env.GEMINI_API_KEY) return json({ error: "segredo Gemini ausente" }, 500);
+      const result = await callGemini(env.GEMINI_API_KEY, config, systemText, messages);
       return json({ provider: "gemini", output: result });
     }
 
