@@ -40,11 +40,17 @@ async function loadConfiguration() {
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ""; };
 
     set("model",               data.config?.model || "gpt-4o-mini");
+    set("temperature",         data.config?.temperature ?? "0.7");
+    set("top_p",               data.config?.top_p ?? "1");
+    set("max_tokens",          data.config?.max_tokens ?? "2048");
+    set("frequency_penalty",   data.config?.frequency_penalty ?? "0");
+    set("presence_penalty",    data.config?.presence_penalty ?? "0");
+    document.getElementById("safety_filter").checked = !!data.config?.safety_filter;
     set("prompt",              data.prompt);
     set("flow",                data.flow);
     set("chatTitle",           pub.chatTitle);
     set("chatDescription",     pub.chatDescription);
-    set("welcomeMessage",      pub.welcomeMessage);
+    set("welcomeMessage",      data.welcomeMessage);
     set("moderation_message",  data.moderation_message);
     set("summary_initial",     data.summary_initial);
     set("summary_update",      data.summary_update);
@@ -83,20 +89,15 @@ async function saveConfiguration(e) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ model })
     });
-    if (!mRes.ok) { const e = await mRes.json(); throw new Error(e.error || "Erro ao salvar modelo"); }
-
-    // Salva config geral
-    const cRes = await fetch("/api/admin/config", {
-      method: "PUT", credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ config: { model }, prompt, flow, public: publicData, moderation_message, summary_initial, summary_update, openai_api_key })
-    });
-    if (!cRes.ok) { const e = await cRes.json(); throw new Error(e.error || "Erro ao salvar config"); }
-
-    showStatus("Configuracoes salvas com sucesso!");
-  } catch (error) {
-    showStatus(`Erro: ${error.message}`, "error");
-  }
+  const config = {
+    model: document.getElementById("model").value,
+    temperature: parseFloat(document.getElementById("temperature").value) || 0.7,
+    top_p: parseFloat(document.getElementById("top_p").value) || 1,
+    max_tokens: parseInt(document.getElementById("max_tokens").value) || 2048,
+    frequency_penalty: parseFloat(document.getElementById("frequency_penalty").value) || 0,
+    presence_penalty: parseFloat(document.getElementById("presence_penalty").value) || 0,
+    safety_filter: document.getElementById("safety_filter").checked
+  };
 }
 
 function handleLogout() {

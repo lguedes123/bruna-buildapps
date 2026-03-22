@@ -23,7 +23,8 @@
 
     <form id="adminForm">
 
-      <!-- Modelo de IA -->
+
+      <!-- Modelo de IA e Parâmetros Avançados -->
       <div class="admin-card">
         <h2>Modelo de IA</h2>
         <div class="form-group">
@@ -42,6 +43,29 @@
             <option value="gpt-4">GPT-4 — legado</option>
             <option value="gpt-3.5-turbo">GPT-3.5 Turbo — mais economico</option>
           </select>
+        </div>
+        <div class="form-group">
+          <label>Temperatura (aleatoriedade)</label>
+          <input type="number" id="temperature" min="0" max="2" step="0.01" placeholder="0.7">
+        </div>
+        <div class="form-group">
+          <label>Top-p (nucleus sampling)</label>
+          <input type="number" id="top_p" min="0" max="1" step="0.01" placeholder="1">
+        </div>
+        <div class="form-group">
+          <label>Máximo de tokens</label>
+          <input type="number" id="max_tokens" min="1" max="4096" step="1" placeholder="2048">
+        </div>
+        <div class="form-group">
+          <label>Frequência Penalty</label>
+          <input type="number" id="frequency_penalty" min="-2" max="2" step="0.01" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>Presença Penalty</label>
+          <input type="number" id="presence_penalty" min="-2" max="2" step="0.01" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label><input type="checkbox" id="safety_filter"> Ativar filtros de segurança</label>
         </div>
       </div>
 

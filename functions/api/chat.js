@@ -41,7 +41,23 @@ export async function onRequestPost(context) {
     if (moderationMessage) systemParts.push(
       `Moderacao: Se o paciente enviar conteudo fora do escopo clinico ou linguagem inadequada, responda EXATAMENTE com este texto: "${moderationMessage}"`
     );
+
     const systemText = systemParts.join("\n\n").trim();
+
+    // Monta payload com parâmetros avançados
+    const openaiPayload = {
+      model: config.model || "gpt-4o-mini",
+      messages: [{ role: "system", content: systemText }, ...messages],
+      temperature: typeof config.temperature === "number" ? config.temperature : 0.7,
+      top_p: typeof config.top_p === "number" ? config.top_p : 1,
+      max_tokens: typeof config.max_tokens === "number" ? config.max_tokens : 2048,
+      frequency_penalty: typeof config.frequency_penalty === "number" ? config.frequency_penalty : 0,
+      presence_penalty: typeof config.presence_penalty === "number" ? config.presence_penalty : 0
+    };
+    // Filtros de segurança (OpenAI: 'safety' ou 'logit_bias' se aplicável)
+    if (config.safety_filter !== undefined) {
+      openaiPayload.safety = !!config.safety_filter;
+    }
 
     // Envia para OpenAI
     const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -50,12 +66,7 @@ export async function onRequestPost(context) {
         "content-type": "application/json",
         "authorization": `Bearer ${openaiApiKey}`
       },
-      body: JSON.stringify({
-        model: config.model || "gpt-4o-mini",
-        messages: [{ role: "system", content: systemText }, ...messages],
-        temperature: 0.7,
-        max_tokens: 2048
-      })
+      body: JSON.stringify(openaiPayload)
     });
 
     const aiData = await aiResponse.json();
