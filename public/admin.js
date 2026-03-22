@@ -9,15 +9,48 @@ function showStatus(message, type = "success") {
   }, 3000);
 }
 
+async function loadAvailableModels() {
+  try {
+    const res = await fetch(`${API_BASE}/admin/models`, {
+      credentials: "include"
+    });
+
+    if (!res.ok) {
+      throw new Error("Erro ao carregar modelos");
+    }
+
+    const { available_models } = await res.json();
+    const modelSelect = document.getElementById("model");
+    
+    // Limpar opciones anteriores
+    modelSelect.innerHTML = "";
+    
+    // Adicionar modelos
+    available_models.forEach(model => {
+      const option = document.createElement("option");
+      option.value = model.id;
+      option.textContent = `${model.name} - ${model.description}`;
+      if (model.default) {
+        option.selected = true;
+      }
+      modelSelect.appendChild(option);
+    });
+  } catch (error) {
+    showStatus(`Erro ao carregar modelos: ${error.message}`, "error");
+  }
+}
+
 async function loadConfiguration() {
   try {
+    await loadAvailableModels();
+
     const res = await fetch(`${API_BASE}/admin/config`, {
       credentials: "include"
     });
 
     if (!res.ok) {
       if (res.status === 401) {
-        window.location.href = "/admin.html?login=1";
+        window.location.href = "/login.html";
       }
       throw new Error(`HTTP ${res.status}`);
     }

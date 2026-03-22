@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Login - BuildApps Admin</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .login-container {
+      max-width: 400px;
+      margin: 5rem auto;
+      padding: 2rem;
+      background: #f9f9f9;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .login-header h1 {
+      margin: 0 0 0.5rem 0;
+      color: #333;
+    }
+
+    .login-header p {
+      color: #666;
+      margin: 0;
+      font-size: 0.9rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      font-weight: 600;
+      color: #333;
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.95rem;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+      outline: none;
+      border-color: #0078d4;
+      box-shadow: 0 0 0 3px rgba(0,120,212,0.1);
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 0.75rem;
+      background: #0078d4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-login:hover {
+      background: #005ea1;
+    }
+
+    .btn-login:active {
+      transform: scale(0.98);
+    }
+
+    .status-message {
+      padding: 0.75rem;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+      display: none;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+
+    .status-message.error {
+      background: #fce8e6;
+      color: #c5221f;
+      border: 1px solid #f1b4b4;
+      display: block;
+    }
+
+    .status-message.success {
+      background: #e6f4ea;
+      color: #1e7e34;
+      border: 1px solid #81c995;
+      display: block;
+    }
+
+    .back-link {
+      text-align: center;
+      margin-top: 1rem;
+    }
+
+    .back-link a {
+      color: #0078d4;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    .back-link a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-header">
+      <h1>🔐 Login Admin</h1>
+      <p>Acesso restrito ao painel de administração</p>
+    </div>
+
+    <div id="statusMessage" class="status-message"></div>
+
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="username">Usuário</label>
+        <input 
+          type="text" 
+          id="username" 
+          placeholder="Digite seu usuário"
+          autocomplete="username"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="password">Senha</label>
+        <input 
+          type="password" 
+          id="password" 
+          placeholder="Digite sua senha"
+          autocomplete="current-password"
+          required
+        >
+      </div>
+
+      <button type="submit" class="btn-login">🔓 Entrar</button>
+    </form>
+
+    <div class="back-link">
+      <a href="/index.html">← Voltar ao chat</a>
+    </div>
+  </div>
+
+  <script src="/login.js"></script>
+</body>
+</html>

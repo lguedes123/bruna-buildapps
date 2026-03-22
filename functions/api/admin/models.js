@@ -1,10 +1,4 @@
-const OPENAI_MODELS = [
-  "gpt-4o",
-  "gpt-4o-mini",
-  "gpt-4-turbo",
-  "gpt-4",
-  "gpt-3.5-turbo"
-];
+import { OPENAI_MODELS, getDefaultModel, validateModel } from "../../config/models.js";
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -26,7 +20,7 @@ export async function onRequestGet(context) {
 
   return json({
     available_models: OPENAI_MODELS,
-    default_model: "gpt-4o-mini"
+    default_model: getDefaultModel()
   });
 }
 
@@ -39,7 +33,7 @@ export async function onRequestPut(context) {
   const body = await context.request.json();
   const { model } = body;
 
-  if (!model || !OPENAI_MODELS.includes(model)) {
+  if (!model || !validateModel(model)) {
     return json({
       error: "modelo inválido",
       available_models: OPENAI_MODELS
@@ -54,11 +48,17 @@ export async function onRequestPut(context) {
     updated_at: new Date().toISOString()
   };
 
-  await env.BUILDAPPS.put(env.APP_SECRET_OPENAI_KEY, JSON.stringify(openaiConfig));
+  try {
+    await env.DB.prepare(
+      "INSERT INTO configs (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP"
+    ).bind("openai_config", JSON.stringify(openaiConfig)).run();
 
-  return json({
-    ok: true,
-    model: model,
-    message: "modelo OpenAI atualizado"
-  });
+    return json({
+      ok: true,
+      model: model,
+      message: "modelo OpenAI atualizado"
+    });
+  } catch (error) {
+    return json({ error: error.message }, 500);
+  }
 }

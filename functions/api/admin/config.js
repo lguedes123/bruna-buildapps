@@ -1,3 +1,15 @@
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+function isAuthorized(request) {
+  const cookie = request.headers.get('cookie') || '';
+  return cookie.includes('admin_session=');
+}
+
 export async function onRequestGet(context) {
   const authorized = isAuthorized(context.request);
   if (!authorized) {
@@ -6,24 +18,33 @@ export async function onRequestGet(context) {
 
   const env = context.env;
 
-  const [configObj, promptObj, flowObj, publicObj] = await Promise.all([
-    env.BUILDAPPS.get(env.APP_CONFIG_KEY),
-    env.BUILDAPPS.get(env.APP_PROMPT_KEY),
-    env.BUILDAPPS.get(env.APP_FLOW_KEY),
-    env.BUILDAPPS.get(env.APP_PUBLIC_KEY)
-  ]);
+  try {
+    const results = await env.DB.prepare(
+      "SELECT key, value FROM configs WHERE key IN ('openai_config', 'prompt', 'flow', 'public')"
+    ).all();
 
-  const config = configObj ? await configObj.json() : {};
-  const prompt = promptObj ? await promptObj.text() : "";
-  const flow = flowObj ? await flowObj.text() : "";
-  const publicData = publicObj ? await publicObj.json() : {};
+    const configData = {};
+    results.results?.forEach(row => {
+      if (row.key === 'openai_config') {
+        configData.config = JSON.parse(row.value || '{}');
+      } else if (row.key === 'prompt') {
+        configData.prompt = row.value || '';
+      } else if (row.key === 'flow') {
+        configData.flow = row.value || '';
+      } else if (row.key === 'public') {
+        configData.public = JSON.parse(row.value || '{}');
+      }
+    });
 
-  return json({
-    config,
-    prompt,
-    flow,
-    public: publicData
-  });
+    return json({
+      config: configData.config || {},
+      prompt: configData.prompt || "",
+      flow: configData.flow || "",
+      public: configData.public || {}
+    });
+  } catch (error) {
+    return json({ error: error.message }, 500);
+  }
 }
 
 export async function onRequestPut(context) {
@@ -39,8 +60,7 @@ export async function onRequestPut(context) {
     config,
     prompt,
     flow,
-    public: publicData,
-    secrets
+    public: publicData
   } = body;
 
   if (!config || !config.provider || !config.model) {
@@ -49,55 +69,32 @@ export async function onRequestPut(context) {
 
   config.updated_at = new Date().toISOString();
 
-  const puts = [
-    env.BUILDAPPS.put(
-      env.APP_CONFIG_KEY,
-      JSON.stringify(config, null, 2),
-      { httpMetadata: { contentType: "application/json" } }
-    ),
-    env.BUILDAPPS.put(
-      env.APP_PROMPT_KEY,
-      String(prompt ?? ""),
-      { httpMetadata: { contentType: "text/plain; charset=utf-8" } }
-    ),
-    env.BUILDAPPS.put(
-      env.APP_FLOW_KEY,
-      String(flow ?? ""),
-      { httpMetadata: { contentType: "text/plain; charset=utf-8" } }
-    ),
-    env.BUILDAPPS.put(
-      env.APP_PUBLIC_KEY,
-      JSON.stringify(publicData ?? {}, null, 2),
-      { httpMetadata: { contentType: "application/json" } }
-    )
-  ];
+  try {
+    const updates = [
+      env.DB.prepare(
+        "INSERT INTO configs (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP"
+      ).bind("openai_config", JSON.stringify(config, null, 2)),
 
-  if (secrets?.openai?.api_key) {
-    puts.push(
-      env.BUILDAPPS.put(
-        env.APP_SECRET_OPENAI_KEY,
-        JSON.stringify({ api_key: secrets.openai.api_key }, null, 2),
-        { httpMetadata: { contentType: "application/json" } }
-      )
-    );
+      env.DB.prepare(
+        "INSERT INTO configs (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP"
+      ).bind("prompt", String(prompt ?? "")),
+
+      env.DB.prepare(
+        "INSERT INTO configs (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP"
+      ).bind("flow", String(flow ?? "")),
+
+      env.DB.prepare(
+        "INSERT INTO configs (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP"
+      ).bind("public", JSON.stringify(publicData ?? {}, null, 2))
+    ];
+
+    await Promise.all(updates.map(q => q.run()));
+
+    return json({ ok: true, updated_at: config.updated_at });
+  } catch (error) {
+    return json({ error: error.message }, 500);
   }
-
-  if (secrets?.gemini?.api_key) {
-    puts.push(
-      env.BUILDAPPS.put(
-        env.APP_SECRET_GEMINI_KEY,
-        JSON.stringify({ api_key: secrets.gemini.api_key }, null, 2),
-        { httpMetadata: { contentType: "application/json" } }
-      )
-    );
-  }
-
-  await Promise.all(puts);
-
-  return json({ ok: true, updated_at: config.updated_at });
 }
-
-function isAuthorized(request) {
   const expected = request.headers.get("x-admin-token");
   return expected && expected === "buildapps-admin-2026";
 }
