@@ -13,17 +13,20 @@ export async function onRequestPost(context) {
     const sessionId = body.session_id || null;
 
     if (!messages.length) return json({ error: "messages e obrigatorio" }, 400);
-    if (!env.OPENAI_API_KEY) return json({ error: "OPENAI_API_KEY nao configurada" }, 500);
 
     // Busca configuracoes do D1 em paralelo
-    const [configRow, promptRow, flowRow, moderationRow, summaryInitialRow, summaryUpdateRow] = await Promise.all([
+    const [configRow, promptRow, flowRow, moderationRow, summaryInitialRow, summaryUpdateRow, apiKeyRow] = await Promise.all([
       env.DB.prepare("SELECT value FROM configs WHERE key = 'openai_config' LIMIT 1").first(),
       env.DB.prepare("SELECT value FROM configs WHERE key = 'prompt' LIMIT 1").first(),
       env.DB.prepare("SELECT value FROM configs WHERE key = 'flow' LIMIT 1").first(),
       env.DB.prepare("SELECT value FROM configs WHERE key = 'moderation_message' LIMIT 1").first(),
       env.DB.prepare("SELECT value FROM configs WHERE key = 'summary_initial' LIMIT 1").first(),
-      env.DB.prepare("SELECT value FROM configs WHERE key = 'summary_update' LIMIT 1").first()
+      env.DB.prepare("SELECT value FROM configs WHERE key = 'summary_update' LIMIT 1").first(),
+      env.DB.prepare("SELECT value FROM configs WHERE key = 'openai_api_key' LIMIT 1").first()
     ]);
+
+    const openaiApiKey = env.OPENAI_API_KEY || apiKeyRow?.value || null;
+    if (!openaiApiKey) return json({ error: "OPENAI_API_KEY nao configurada" }, 500);
 
     const config             = configRow ? JSON.parse(configRow.value) : { model: "gpt-4o-mini" };
     const prompt             = promptRow?.value || "";
@@ -44,7 +47,7 @@ export async function onRequestPost(context) {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "authorization": `Bearer ${env.OPENAI_API_KEY}`
+        "authorization": `Bearer ${openaiApiKey}`
       },
       body: JSON.stringify({
         model: config.model || "gpt-4o-mini",
@@ -62,7 +65,7 @@ export async function onRequestPost(context) {
     // Persiste conversa e mensagens no D1 (nao bloqueia a resposta)
     if (sessionId) {
       context.waitUntil(
-        persistConversation(env, sessionId, messages, output, summaryInitial, summaryUpdate, config)
+        persistConversation(env, sessionId, messages, output, summaryInitial, summaryUpdate, config, openaiApiKey)
       );
     }
 
@@ -73,7 +76,7 @@ export async function onRequestPost(context) {
   }
 }
 
-async function persistConversation(env, sessionId, messages, assistantReply, summaryInitialInstr, summaryUpdateInstr, config) {
+async function persistConversation(env, sessionId, messages, assistantReply, summaryInitialInstr, summaryUpdateInstr, config, openaiApiKey) {
   try {
     // Upsert conversa
     await env.DB.prepare(`
@@ -116,7 +119,7 @@ async function persistConversation(env, sessionId, messages, assistantReply, sum
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "authorization": `Bearer ${env.OPENAI_API_KEY}`
+        "authorization": `Bearer ${openaiApiKey}`
       },
       body: JSON.stringify({
         model: config.model || "gpt-4o-mini",

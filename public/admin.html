@@ -106,6 +106,18 @@
         </div>
       </div>
 
+      <!-- OpenAI API Key -->
+      <div class="admin-card">
+        <h2>Chave de API OpenAI</h2>
+        <div class="form-group">
+          <div class="label-row">
+            <label>OPENAI_API_KEY (fallback se nao definida no servidor)</label>
+            <span class="info-icon">?<span class="tooltip">Usada se a variavel de ambiente OPENAI_API_KEY nao estiver configurada no servidor/Cloudflare. Salva no banco de dados.</span></span>
+          </div>
+          <input type="password" id="openai_api_key" placeholder="sk-proj-..." autocomplete="off" />
+        </div>
+      </div>
+
       <!-- Resumo automatico -->
       <div class="admin-card">
         <h2>Resumo Clinico Automatico</h2>

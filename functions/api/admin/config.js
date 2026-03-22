@@ -79,7 +79,8 @@ const CONFIG_KEYS = [
   'public',
   'moderation_message',
   'summary_initial',
-  'summary_update'
+  'summary_update',
+  'openai_api_key'
 ];
 
 export async function onRequestGet(context) {
@@ -107,7 +108,8 @@ export async function onRequestGet(context) {
       public: d.public || {},
       moderation_message: d.moderation_message || '',
       summary_initial: d.summary_initial || '',
-      summary_update: d.summary_update || ''
+      summary_update: d.summary_update || '',
+      openai_api_key: d.openai_api_key || ''
     });
   } catch (error) {
     return json({ error: error.message || 'internal_error' }, 500);
@@ -128,7 +130,8 @@ export async function onRequestPut(context) {
       public: publicData,
       moderation_message,
       summary_initial,
-      summary_update
+      summary_update,
+      openai_api_key
     } = body;
 
     if (!config || typeof config !== 'object' || !config.model) {
@@ -157,7 +160,8 @@ export async function onRequestPut(context) {
       upsert("public", JSON.stringify(publicData ?? {})),
       upsert("moderation_message", String(moderation_message ?? '')),
       upsert("summary_initial", String(summary_initial ?? '')),
-      upsert("summary_update", String(summary_update ?? ''))
+      upsert("summary_update", String(summary_update ?? '')),
+      upsert("openai_api_key", String(openai_api_key ?? ''))
     ]);
 
     return json({ ok: true, updated_at: now });

@@ -99,6 +99,7 @@ async function loadConfiguration() {
     set("moderation_message",  data.moderation_message);
     set("summary_initial",     data.summary_initial);
     set("summary_update",      data.summary_update);
+    set("openai_api_key",      data.openai_api_key);
 
   } catch (error) {
     showStatus(`Erro ao carregar: ${error.message}`, "error");
@@ -116,6 +117,7 @@ async function saveConfiguration(e) {
   const moderation_message = g("moderation_message");
   const summary_initial = g("summary_initial");
   const summary_update  = g("summary_update");
+  const openai_api_key  = g("openai_api_key");
 
   const publicData = {
     chatTitle:       g("chatTitle"),
@@ -138,7 +140,7 @@ async function saveConfiguration(e) {
     const cRes = await fetch(`${API_BASE}/admin/config`, {
       method: "PUT", credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ config: { model }, prompt, flow, public: publicData, moderation_message, summary_initial, summary_update })
+      body: JSON.stringify({ config: { model }, prompt, flow, public: publicData, moderation_message, summary_initial, summary_update, openai_api_key })
     });
     if (!cRes.ok) { const e = await cRes.json(); throw new Error(e.error || "Erro ao salvar config"); }
 
