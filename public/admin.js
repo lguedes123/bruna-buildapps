@@ -1,83 +1,110 @@
-const $ = (id) => document.getElementById(id);
+const API_BASE = "/api";
 
-$("loadBtn").addEventListener("click", loadConfig);
-$("saveBtn").addEventListener("click", saveConfig);
-
-async function loadConfig() {
-  const token = $("adminToken").value.trim();
-
-  const response = await fetch("/api/admin/config", {
-    headers: { "x-admin-token": token }
-  });
-
-  const data = await response.json();
-  $("status").textContent = JSON.stringify(data, null, 2);
-
-  if (!response.ok) return;
-
-  const c = data.config || {};
-  const p = data.public || {};
-
-  $("provider").value = c.provider || "openai";
-  $("model").value = c.model || "";
-  $("temperature").value = c.temperature ?? 0.3;
-  $("top_p").value = c.top_p ?? 1;
-  $("max_tokens").value = c.max_tokens ?? 700;
-  $("frequency_penalty").value = c.frequency_penalty ?? 0;
-  $("presence_penalty").value = c.presence_penalty ?? 0;
-
-  $("safety_hate").value = c.safety?.hate || "BLOCK_ONLY_HIGH";
-  $("safety_harassment").value = c.safety?.harassment || "BLOCK_ONLY_HIGH";
-  $("safety_sexual").value = c.safety?.sexual || "BLOCK_ONLY_HIGH";
-  $("safety_dangerous").value = c.safety?.dangerous || "BLOCK_ONLY_HIGH";
-
-  $("prompt").value = data.prompt || "";
-  $("flow").value = data.flow || "";
-
-  $("chatTitleInput").value = p.chatTitle || "";
-  $("welcomeMessage").value = p.welcomeMessage || "";
+function showStatus(message, type = "success") {
+  const statusEl = document.getElementById("statusMessage");
+  statusEl.textContent = message;
+  statusEl.className = `status-message ${type}`;
+  setTimeout(() => {
+    statusEl.className = "status-message";
+  }, 3000);
 }
 
-async function saveConfig() {
-  const token = $("adminToken").value.trim();
+async function loadConfiguration() {
+  try {
+    const res = await fetch(`${API_BASE}/admin/config`, {
+      credentials: "include"
+    });
 
-  const payload = {
-    config: {
-      provider: $("provider").value,
-      model: $("model").value.trim(),
-      temperature: Number($("temperature").value),
-      top_p: Number($("top_p").value),
-      max_tokens: Number($("max_tokens").value),
-      frequency_penalty: Number($("frequency_penalty").value),
-      presence_penalty: Number($("presence_penalty").value),
-      safety: {
-        hate: $("safety_hate").value,
-        harassment: $("safety_harassment").value,
-        sexual: $("safety_sexual").value,
-        dangerous: $("safety_dangerous").value
+    if (!res.ok) {
+      if (res.status === 401) {
+        window.location.href = "/admin.html?login=1";
       }
-    },
-    prompt: $("prompt").value,
-    flow: $("flow").value,
-    public: {
-      chatTitle: $("chatTitleInput").value,
-      welcomeMessage: $("welcomeMessage").value
-    },
-    secrets: {
-      openai: { api_key: $("openai_key").value.trim() },
-      gemini: { api_key: $("gemini_key").value.trim() }
+      throw new Error(`HTTP ${res.status}`);
     }
-  };
 
-  const response = await fetch("/api/admin/config", {
+    const { config, prompt, flow, public: publicData } = await res.json();
+
+    document.getElementById("model").value = config.model || "gpt-4o-mini";
+    document.getElementById("prompt").value = prompt || "";
+    document.getElementById("flow").value = flow || "";
+    document.getElementById("public").value = JSON.stringify(publicData, null, 2) || "";
+  } catch (error) {
+    showStatus(`Erro ao carregar: ${error.message}`, "error");
+  }
+}
+
+async function saveConfiguration(e) {
+  e.preventDefault();
+
+  const model = document.getElementById("model").value;
+  const prompt = document.getElementById("prompt").value;
+  const flow = document.getElementById("flow").value;
+  const publicData = document.getElementById("public").value;
+
+  try {
+    if (!model) {
+      throw new Error("Selecione um modelo");
+    }
+
+    // Primeiro, salva o modelo via endpoints separados
+    await saveModel(model);
+    
+    // Depois, salva o config geral
+    await saveConfig({ prompt, flow, publicData });
+
+    showStatus("✓ Configurações salvas com sucesso!");
+  } catch (error) {
+    showStatus(`✗ Erro: ${error.message}`, "error");
+  }
+}
+
+async function saveModel(model) {
+  const res = await fetch(`${API_BASE}/admin/models`, {
     method: "PUT",
-    headers: {
-      "content-type": "application/json",
-      "x-admin-token": token
-    },
-    body: JSON.stringify(payload)
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model })
   });
 
-  const data = await response.json();
-  $("status").textContent = JSON.stringify(data, null, 2);
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || "Erro ao salvar modelo");
+  }
 }
+
+async function saveConfig(data) {
+  const res = await fetch(`${API_BASE}/admin/config`, {
+    method: "PUT",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      config: {
+        provider: "openai",
+        model: document.getElementById("model").value,
+        updated_at: new Date().toISOString()
+      },
+      prompt: data.prompt,
+      flow: data.flow,
+      public: data.publicData ? JSON.parse(data.publicData) : {}
+    })
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || "Erro ao salvar configurações");
+  }
+}
+
+function handleLogout() {
+  document.cookie = "admin_session=; path=/; max-age=0";
+  window.location.href = "/index.html";
+}
+
+// Carregar configurações ao abrir a página
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("adminForm");
+  if (form) {
+    form.addEventListener("submit", saveConfiguration);
+  }
+  loadConfiguration();
+});

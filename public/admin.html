@@ -3,121 +3,266 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Admin</title>
+  <title>Admin - BuildApps Chatbot</title>
   <link rel="stylesheet" href="/styles.css">
+  <style>
+    .admin-container {
+      max-width: 600px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background: #f9f9f9;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+
+    .back-link {
+      color: #0078d4;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .label-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    label {
+      font-weight: 600;
+      color: #333;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .info-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #0078d4;
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: help;
+      position: relative;
+    }
+
+    .info-icon:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: white;
+      padding: 0.75rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 400;
+      white-space: pre-wrap;
+      max-width: 280px;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .info-icon:hover::before {
+      content: "";
+      position: absolute;
+      bottom: 115%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-top-color: #333;
+      z-index: 1000;
+    }
+
+    input[type="text"],
+    select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+
+    input[type="text"]:focus,
+    select:focus {
+      outline: none;
+      border-color: #0078d4;
+      box-shadow: 0 0 0 3px rgba(0,120,212,0.1);
+    }
+
+    .button-group {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    button {
+      flex: 1;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn-save {
+      background: #0078d4;
+      color: white;
+    }
+
+    .btn-save:hover {
+      background: #005ea1;
+    }
+
+    .btn-save:active {
+      transform: scale(0.98);
+    }
+
+    .btn-logout {
+      background: #e0e0e0;
+      color: #333;
+    }
+
+    .btn-logout:hover {
+      background: #d0d0d0;
+    }
+
+    .status-message {
+      padding: 0.75rem;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    .status-message.success {
+      background: #e6f4ea;
+      color: #1e7e34;
+      border: 1px solid #81c995;
+      display: block;
+    }
+
+    .status-message.error {
+      background: #fce8e6;
+      color: #c5221f;
+      border: 1px solid #f1b4b4;
+      display: block;
+    }
+  </style>
 </head>
 <body>
-  <main class="container">
-    <header class="topbar">
-      <h1>Administração</h1>
-      <a href="/index.html">Chat</a>
-    </header>
+  <div class="admin-container">
+    <div class="admin-header">
+      <h1>Configuração do Chatbot</h1>
+      <a href="/index.html" class="back-link">← Voltar</a>
+    </div>
 
-    <div class="admin-grid">
-      <label>Token Admin
-        <input id="adminToken" type="password">
-      </label>
+    <div id="statusMessage" class="status-message"></div>
 
-      <label>Provider
-        <select id="provider">
-          <option value="openai">OpenAI</option>
-          <option value="gemini">Gemini</option>
-        </select>
-      </label>
-
-      <label>Modelo
-        <input id="model">
-      </label>
-
-      <label>Temperatura
-        <input id="temperature" type="number" step="0.1" min="0" max="2">
-      </label>
-
-      <label>Top-p
-        <input id="top_p" type="number" step="0.1" min="0" max="1">
-      </label>
-
-      <label>Max tokens
-        <input id="max_tokens" type="number" min="1" max="16384">
-      </label>
-
-      <label>Frequency penalty
-        <input id="frequency_penalty" type="number" step="0.1" min="-2" max="2">
-      </label>
-
-      <label>Presence penalty
-        <input id="presence_penalty" type="number" step="0.1" min="-2" max="2">
-      </label>
-
-      <label>Safety hate
-        <select id="safety_hate">
-          <option>BLOCK_NONE</option>
-          <option>BLOCK_ONLY_HIGH</option>
-          <option>BLOCK_MEDIUM_AND_ABOVE</option>
-          <option>BLOCK_LOW_AND_ABOVE</option>
-        </select>
-      </label>
-
-      <label>Safety harassment
-        <select id="safety_harassment">
-          <option>BLOCK_NONE</option>
-          <option>BLOCK_ONLY_HIGH</option>
-          <option>BLOCK_MEDIUM_AND_ABOVE</option>
-          <option>BLOCK_LOW_AND_ABOVE</option>
-        </select>
-      </label>
-
-      <label>Safety sexual
-        <select id="safety_sexual">
-          <option>BLOCK_NONE</option>
-          <option>BLOCK_ONLY_HIGH</option>
-          <option>BLOCK_MEDIUM_AND_ABOVE</option>
-          <option>BLOCK_LOW_AND_ABOVE</option>
-        </select>
-      </label>
-
-      <label>Safety dangerous
-        <select id="safety_dangerous">
-          <option>BLOCK_NONE</option>
-          <option>BLOCK_ONLY_HIGH</option>
-          <option>BLOCK_MEDIUM_AND_ABOVE</option>
-          <option>BLOCK_LOW_AND_ABOVE</option>
-        </select>
-      </label>
-
-      <label>Chave OpenAI
-        <input id="openai_key" type="password">
-      </label>
-
-      <label>Chave Gemini
-        <input id="gemini_key" type="password">
-      </label>
-
-      <label class="full">Prompt
-        <textarea id="prompt" rows="6"></textarea>
-      </label>
-
-      <label class="full">Fluxo
-        <textarea id="flow" rows="8"></textarea>
-      </label>
-
-      <label class="full">Título do Chat
-        <input id="chatTitleInput">
-      </label>
-
-      <label class="full">Mensagem Inicial
-        <textarea id="welcomeMessage" rows="3"></textarea>
-      </label>
-
-      <div class="full actions">
-        <button id="loadBtn" type="button">Carregar</button>
-        <button id="saveBtn" type="button">Salvar</button>
+    <form id="adminForm">
+      <!-- Provider (fixo como OpenAI) -->
+      <div class="form-group">
+        <div class="label-row">
+          <label>👤 Provedor</label>
+          <div class="info-icon" data-tooltip="O provedor é o serviço de IA que alimenta o chatbot. OpenAI oferece modelos como GPT-4, usados para análise e síntese de informações médicas.">?</div>
+        </div>
+        <input 
+          type="text" 
+          id="provider" 
+          value="OpenAI" 
+          disabled
+          placeholder="OpenAI"
+        >
       </div>
 
-      <pre id="status" class="full status"></pre>
-    </div>
-  </main>
+      <!-- Modelo -->
+      <div class="form-group">
+        <div class="label-row">
+          <label>🧠 Modelo de IA</label>
+          <div class="info-icon" data-tooltip="O modelo determina quanto 'conhecimento' a IA tem. 'gpt-4o' é o mais capaz (caro), ideal para casos complexos. 'gpt-4o-mini' é mais rápido e econômico. Escolha conforme sua necessidade clínica.">?</div>
+        </div>
+        <select id="model">
+          <option value="gpt-4o">GPT-4o (mais inteligente, mais lento)</option>
+          <option value="gpt-4o-mini" selected>GPT-4o Mini (padrão, rápido)</option>
+          <option value="gpt-4-turbo">GPT-4 Turbo (intermediário)</option>
+          <option value="gpt-4">GPT-4 (legado)</option>
+          <option value="gpt-3.5-turbo">GPT-3.5 Turbo (mais econômico)</option>
+        </select>
+      </div>
+
+      <!-- Prompt -->
+      <div class="form-group">
+        <div class="label-row">
+          <label>📝 Instruções do Chatbot</label>
+          <div class="info-icon" data-tooltip="São as 'instruções iniciais' que você dá ao assistente. Ex: 'Você é um assistente médico especializado em cardiologia que fornece informações educacionais'.">?</div>
+        </div>
+        <textarea 
+          id="prompt" 
+          rows="4"
+          placeholder="Ex: Você é um assistente médico educacional especializado em diagnóstico clínico. Forneça explicações claras e baseadas em evidências científicas."
+          style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; font-size: 0.9rem;"
+        ></textarea>
+      </div>
+
+      <!-- Fluxo de Trabalho -->
+      <div class="form-group">
+        <div class="label-row">
+          <label>🔄 Fluxo de Atendimento</label>
+          <div class="info-icon" data-tooltip="Define como o chatbot deve se comportar durante a consulta. Ex: '1. Escutar queixa principal 2. Fazer perguntas de acompanhamento 3. Sugerir diagnósticos diferenciais 4. Recomendar próximos passos'.">?</div>
+        </div>
+        <textarea 
+          id="flow" 
+          rows="4"
+          placeholder="Ex: 1. Coletar história clínica detalhada&#10;2. Perguntar sobre sintomas associados&#10;3. Avaliar fatores de risco&#10;4. Sugerir investigações complementares"
+          style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; font-size: 0.9rem;"
+        ></textarea>
+      </div>
+
+      <!-- Chave Pública (Configuração de Roteamento) -->
+      <div class="form-group">
+        <div class="label-row">
+          <label>🌐 Configuração de Roteamento</label>
+          <div class="info-icon" data-tooltip="Define em que situações o chatbot deve responder ou redirecionar. Ex: 'responder a questões educacionais, redirecionar emergências para 192/SAMU'.">?</div>
+        </div>
+        <textarea 
+          id="public" 
+          rows="3"
+          placeholder='Ex: {"routes": ["/chat"], "emergency_keywords": ["infarto", "acidente vascular"]}'
+          style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; font-size: 0.9rem;"
+        ></textarea>
+      </div>
+
+      <!-- Botões -->
+      <div class="button-group">
+        <button type="submit" class="btn-save">💾 Salvar Configurações</button>
+        <button type="button" class="btn-logout" onclick="handleLogout()">🚪 Sair</button>
+      </div>
+    </form>
+  </div>
 
   <script src="/admin.js"></script>
 </body>
+</html>
 </html>
