@@ -1,11 +1,32 @@
-﻿function json(data, status = 200) {
+﻿
+function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
 }
 
+// Utilidades
+function truncate(str, maxChars) {
+  if (!str || typeof str !== 'string') return '';
+  if (str.length <= maxChars) return str;
+  return str.slice(0, maxChars) + '\n…[truncated]';
+}
+
+async function getText(env, key, cache) {
+  if (cache && cache[key] !== undefined) return cache[key];
+  try {
+    if (!env.BUILDAPPS) return '';
+    const obj = await env.BUILDAPPS.get(key);
+    const text = obj ? await obj.text() : '';
+    if (cache) cache[key] = text;
+    return text;
+  } catch { return ''; }
+}
+
 export async function onRequestPost(context) {
+  // cache leve por request
+  const cache = {};
   try {
     const env = context.env;
     const body = await context.request.json();
@@ -15,51 +36,65 @@ export async function onRequestPost(context) {
 
     if (!messages.length) return json({ error: "messages e obrigatorio" }, 400);
 
-    // Usa APENAS a variavel de ambiente para API key (nunca do banco)
+    // Segurança: nunca expor secrets ao cliente
     const openaiApiKey = env.OPENAI_API_KEY;
     if (!openaiApiKey) return json({ error: "OPENAI_API_KEY nao configurada nas variaveis de ambiente" }, 500);
 
-    // Busca configuracoes do D1 em paralelo (sem API key do banco)
-    const [configRow, promptRow, flowRow, moderationRow, summaryInitialRow, summaryUpdateRow] = await Promise.all([
+    // Busca configs do banco e do R2
+    const [configRow, promptRow, flowRow, moderationRow, summaryInitialRow, summaryUpdateRow, r2Config] = await Promise.all([
       env.DB.prepare("SELECT value FROM configs WHERE key = 'openai_config' LIMIT 1").first(),
       env.DB.prepare("SELECT value FROM configs WHERE key = 'prompt' LIMIT 1").first(),
       env.DB.prepare("SELECT value FROM configs WHERE key = 'flow' LIMIT 1").first(),
       env.DB.prepare("SELECT value FROM configs WHERE key = 'moderation_message' LIMIT 1").first(),
       env.DB.prepare("SELECT value FROM configs WHERE key = 'summary_initial' LIMIT 1").first(),
-      env.DB.prepare("SELECT value FROM configs WHERE key = 'summary_update' LIMIT 1").first()
+      env.DB.prepare("SELECT value FROM configs WHERE key = 'summary_update' LIMIT 1").first(),
+      getText(env, "config.json", cache)
     ]);
 
-    const config             = configRow ? JSON.parse(configRow.value) : { model: "gpt-4o-mini" };
+    let config = configRow ? JSON.parse(configRow.value) : { model: "gpt-4.1-mini" };
+    if (r2Config) {
+      try {
+        const r2Parsed = JSON.parse(r2Config);
+        config = { ...config, ...r2Parsed };
+      } catch {}
+    }
     const prompt             = promptRow?.value || "";
     const flow               = flowRow?.value || "";
     const moderationMessage  = moderationRow?.value || "";
     const summaryInitial     = summaryInitialRow?.value || "";
     const summaryUpdate      = summaryUpdateRow?.value || "";
 
-    const systemParts = [prompt];
+    // Carrega knowledge e template do R2
+    const [knowledge, formTemplate] = await Promise.all([
+      getText(env, "knowledge/anamnese_base.txt", cache),
+      getText(env, "templates/form.txt", cache)
+    ]);
+
+    // Monta o system prompt
+    const systemParts = [];
+    if (prompt) systemParts.push(prompt);
     if (flow) systemParts.push(`Fluxo:\n${flow}`);
     if (moderationMessage) systemParts.push(
       `Moderacao: Se o paciente enviar conteudo fora do escopo clinico ou linguagem inadequada, responda EXATAMENTE com este texto: "${moderationMessage}"`
     );
+    if (formTemplate) systemParts.push(`\n\nFORMULÁRIO PADRÃO:\n${truncate(formTemplate, 4000)}`);
+    if (knowledge) systemParts.push(`\n\nBASE DE CONHECIMENTO:\n${truncate(knowledge, 12000)}`);
 
     const systemText = systemParts.join("\n\n").trim();
 
-    // Monta payload com parâmetros avançados
+    // Parâmetros dinâmicos e defaults
     const openaiPayload = {
-      model: config.model || "gpt-4o-mini",
+      model: env.OPENAI_MODEL || config.model || "gpt-4.1-mini",
       messages: [{ role: "system", content: systemText }, ...messages],
-      temperature: typeof config.temperature === "number" ? config.temperature : 0.7,
+      temperature: typeof config.temperature === "number" ? config.temperature : 0.3,
       top_p: typeof config.top_p === "number" ? config.top_p : 1,
-      max_tokens: typeof config.max_tokens === "number" ? config.max_tokens : 2048,
-      frequency_penalty: typeof config.frequency_penalty === "number" ? config.frequency_penalty : 0,
-      presence_penalty: typeof config.presence_penalty === "number" ? config.presence_penalty : 0
+      max_tokens: typeof config.max_tokens === "number" ? config.max_tokens : 700
     };
-    // Filtros de segurança (OpenAI: 'safety' ou 'logit_bias' se aplicável)
-    if (config.safety_filter !== undefined) {
-      openaiPayload.safety = !!config.safety_filter;
-    }
+    if (typeof config.frequency_penalty === "number") openaiPayload.frequency_penalty = config.frequency_penalty;
+    if (typeof config.presence_penalty === "number") openaiPayload.presence_penalty = config.presence_penalty;
+    if (config.safety_filter !== undefined) openaiPayload.safety = !!config.safety_filter;
 
-    // Envia para OpenAI
+    // Chamada à OpenAI
     const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
