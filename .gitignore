@@ -5,3 +5,6 @@ dist/
 build/
 .wrangler
 .env.*
+.dev.vars
+test_*.py
+test-*.ps1
