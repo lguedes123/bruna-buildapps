@@ -5,3 +5,4 @@ dist/
 build/
 .wrangler
 .env.*
+r2/secrets/*.json
