@@ -1,0 +1,91 @@
+﻿<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Historico - Agente de Anamnese</title>
+  <link rel="icon" type="image/x-icon" href="/Amamnese-ico.ico">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .hist-layout       { display:flex; height:calc(100vh - 52px); overflow:hidden; }
+    .hist-sidebar      { width:320px; min-width:220px; flex-shrink:0; border-right:1px solid #ddd;
+                         overflow-y:auto; background:#f8f9fa; display:flex; flex-direction:column; }
+    .hist-main         { flex:1; overflow-y:auto; padding:24px; background:#fff; }
+    .hist-search       { padding:10px 12px; border-bottom:1px solid #ddd; background:#fff; }
+    .hist-search input { width:100%; padding:7px 10px; border:1px solid #ccc; border-radius:6px;
+                         font-size:13px; box-sizing:border-box; }
+    .hist-list         { flex:1; overflow-y:auto; }
+    .hist-item         { padding:12px 14px; border-bottom:1px solid #eee; cursor:pointer;
+                         transition:background 0.15s; }
+    .hist-item:hover   { background:#e8f5e9; }
+    .hist-item.active  { background:#dcf8c6; border-left:3px solid #075e54; }
+    .hist-item .name   { font-weight:600; font-size:14px; color:#111; }
+    .hist-item .meta   { font-size:11px; color:#888; margin-top:2px; }
+    .hist-item .preview{ font-size:12px; color:#555; margin-top:4px;
+                         white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .hist-empty        { padding:32px 16px; text-align:center; color:#aaa; font-size:14px; }
+    .hist-pagination   { padding:10px 12px; border-top:1px solid #ddd; display:flex;
+                         gap:8px; justify-content:center; background:#fff; }
+    .hist-pagination button { padding:5px 12px; border:1px solid #ccc; border-radius:4px;
+                               background:#fff; cursor:pointer; font-size:12px; }
+    .hist-pagination button:disabled { opacity:0.4; cursor:default; }
+    .conv-header       { display:flex; justify-content:space-between; align-items:flex-start;
+                         margin-bottom:16px; padding-bottom:12px; border-bottom:2px solid #e0e0e0; }
+    .conv-header h2    { margin:0; font-size:18px; color:#075e54; }
+    .conv-meta         { font-size:12px; color:#888; margin-top:4px; }
+    .conv-summary      { background:#f0f8f0; border:1px solid #c8e6c9; border-radius:8px;
+                         padding:14px 16px; margin-bottom:20px; font-size:13px; line-height:1.6; }
+    .conv-summary h3   { margin:0 0 8px; font-size:13px; color:#075e54; text-transform:uppercase;
+                         letter-spacing:.5px; }
+    .conv-summary pre  { white-space:pre-wrap; margin:0; font-family:inherit; }
+    .conv-messages     { display:flex; flex-direction:column; gap:10px; }
+    .conv-msg          { max-width:75%; padding:10px 14px; border-radius:12px;
+                         font-size:14px; line-height:1.5; white-space:pre-wrap; }
+    .conv-msg.user     { align-self:flex-end; background:#dcf8c6; border-bottom-right-radius:3px; }
+    .conv-msg.assistant{ align-self:flex-start; background:#f1f1f1; border-bottom-left-radius:3px; }
+    .conv-msg .ts      { font-size:10px; color:#999; margin-top:4px; text-align:right; }
+    .btn-del           { padding:5px 12px; background:#fce8e6; color:#c5221f; border:1px solid #f1b4b4;
+                         border-radius:4px; cursor:pointer; font-size:12px; }
+    .btn-del:hover     { background:#f1b4b4; }
+    .hist-placeholder  { display:flex; align-items:center; justify-content:center;
+                         height:100%; color:#bbb; font-size:15px; flex-direction:column; gap:8px; }
+    @media(max-width:600px) {
+      .hist-layout { flex-direction:column; height:auto; }
+      .hist-sidebar { width:100%; height:40vh; border-right:none; border-bottom:1px solid #ddd; }
+    }
+  </style>
+</head>
+<body class="admin-page">
+
+  <div class="admin-titlebar">
+    <h1>Historico de Conversas</h1>
+    <div style="display:flex;gap:12px;align-items:center;">
+      <a href="/admin.html" class="btn-secondary" style="text-decoration:none;padding:6px 14px;font-size:13px;">Configuracoes</a>
+      <a href="/index.html">Chat</a>
+    </div>
+  </div>
+
+  <div class="hist-layout">
+    <!-- Sidebar: lista de conversas -->
+    <aside class="hist-sidebar">
+      <div class="hist-search">
+        <input type="text" id="searchInput" placeholder="Buscar por nome ou resumo..." oninput="debounceSearch()">
+      </div>
+      <div class="hist-list" id="histList">
+        <div class="hist-empty">Carregando...</div>
+      </div>
+      <div class="hist-pagination" id="pagination"></div>
+    </aside>
+
+    <!-- Main: detalhe da conversa selecionada -->
+    <main class="hist-main" id="histMain">
+      <div class="hist-placeholder">
+        <span style="font-size:32px;">&#128172;</span>
+        <span>Selecione uma conversa para visualizar</span>
+      </div>
+    </main>
+  </div>
+
+  <script src="/historico.js"></script>
+</body>
+</html>

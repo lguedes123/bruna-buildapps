@@ -6,6 +6,17 @@ const headerStatus = document.getElementById("headerStatus");
 
 const messages = [];
 let isLoading = false;
+let statusText = headerStatus.textContent;
+
+// ID de sessao unico por visita
+const SESSION_ID = (() => {
+  let id = sessionStorage.getItem("chat_session_id");
+  if (!id) {
+    id = Date.now().toString(36) + Math.random().toString(36).slice(2);
+    sessionStorage.setItem("chat_session_id", id);
+  }
+  return id;
+})();
 
 // Auto-resize textarea
 input.addEventListener("input", () => {
@@ -31,11 +42,12 @@ async function boot() {
     if (response.ok) {
       const data = await response.json();
       if (data?.chatTitle) chatTitle.textContent = data.chatTitle;
+      if (data?.chatDescription) { headerStatus.textContent = data.chatDescription; statusText = data.chatDescription; }
       if (data?.welcomeMessage) addMessage("assistant", data.welcomeMessage, true);
       return;
     }
   } catch {}
-  addMessage("assistant", "Olá! 👋 Sou seu assistente de anamnese. Como posso ajudar?", true);
+  addMessage("assistant", "Ola! Sou seu assistente de anamnese. Como posso ajudar?", true);
 }
 
 async function send() {
@@ -55,7 +67,7 @@ async function send() {
     const response = await fetch("/api/chat", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ messages })
+      body: JSON.stringify({ messages, session_id: SESSION_ID })
     });
 
     const data = await response.json();
@@ -78,7 +90,7 @@ async function send() {
 function setLoading(state) {
   isLoading = state;
   sendBtn.disabled = state;
-  headerStatus.textContent = state ? "digitando..." : "online";
+  headerStatus.textContent = state ? "digitando..." : statusText;
 }
 
 function addMessage(role, content, silent = false) {

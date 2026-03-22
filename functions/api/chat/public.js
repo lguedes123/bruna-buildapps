@@ -26,8 +26,9 @@ export async function onRequestGet(context) {
 
     const data = JSON.parse(result.value || '{}');
     return json({
-      chatTitle: data.chatTitle || "Assistente de Anamnese",
-      welcomeMessage: data.welcomeMessage || "Olá! Como posso ajudar?"
+      chatTitle:       data.chatTitle       || "Agente de Anamnese Medica Hibrida",
+      chatDescription: data.chatDescription || "",
+      welcomeMessage:  data.welcomeMessage  || "Ola! Como posso ajudar?"
     });
   } catch {
     return json({
