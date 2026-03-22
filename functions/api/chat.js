@@ -1,4 +1,30 @@
 ﻿
+
+// Novo endpoint para checagem de CPF
+export async function onRequest(context) {
+  const { request, env } = context;
+  const url = new URL(request.url);
+  if (url.pathname.endsWith('/check-cpf') && request.method === 'POST') {
+    try {
+      const body = await request.json();
+      const cpf = (body.cpf || '').replace(/\D/g, '');
+      const profissionalCpf = (body.profissional_cpf || '').replace(/\D/g, '');
+      const userType = body.user_type;
+      let exists = false, nome = null;
+      if (userType === 'paciente' && cpf) {
+        const row = await env.DB.prepare("SELECT user_name FROM conversations WHERE cpf = ? LIMIT 1").bind(cpf).first();
+        if (row && row.user_name) { exists = true; nome = row.user_name; }
+      } else if ((userType === 'medico' || userType === 'profissional') && cpf && profissionalCpf) {
+        const row = await env.DB.prepare("SELECT user_name FROM conversations WHERE cpf = ? AND profissional_cpf = ? LIMIT 1").bind(cpf, profissionalCpf).first();
+        if (row && row.user_name) { exists = true; nome = row.user_name; }
+      }
+      return json({ exists, nome });
+    } catch {
+      return json({ exists: false });
+    }
+  }
+}
+
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -123,7 +149,8 @@ export async function onRequestPost(context) {
   }
 }
 
-async function persistConversation(env, sessionId, messages, assistantReply, summaryInitialInstr, summaryUpdateInstr, config, openaiApiKey, userType) {
+
+async function persistConversation(env, sessionId, messages, assistantReply, summaryInitialInstr, summaryUpdateInstr, config, openaiApiKey, userType, cpf, profissionalCpf, userName) {
   // Utilidades locais
   function fillTemplate(template, data) {
     return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => data[key] ?? '');
@@ -140,20 +167,17 @@ async function persistConversation(env, sessionId, messages, assistantReply, sum
   }
   const cache = {};
   try {
-    // Upsert conversa, agora com user_type
-    if (userType) {
-      await env.DB.prepare(`
-        INSERT INTO conversations (session_id, updated_at, user_type)
-        VALUES (?, CURRENT_TIMESTAMP, ?)
-        ON CONFLICT(session_id) DO UPDATE SET updated_at = CURRENT_TIMESTAMP
-      `).bind(sessionId, userType).run();
-    } else {
-      await env.DB.prepare(`
-        INSERT INTO conversations (session_id, updated_at)
-        VALUES (?, CURRENT_TIMESTAMP)
-        ON CONFLICT(session_id) DO UPDATE SET updated_at = CURRENT_TIMESTAMP
-      `).bind(sessionId).run();
-    }
+    // Upsert conversa, agora com user_type, cpf, profissional_cpf, user_name
+    let insertSql = "INSERT INTO conversations (session_id, updated_at";
+    let insertVals = [sessionId];
+    let insertQ = "?";
+    if (userType) { insertSql += ", user_type"; insertVals.push(userType); insertQ += ",?"; }
+    if (cpf) { insertSql += ", cpf"; insertVals.push(cpf); insertQ += ",?"; }
+    if (profissionalCpf) { insertSql += ", profissional_cpf"; insertVals.push(profissionalCpf); insertQ += ",?"; }
+    if (userName) { insertSql += ", user_name"; insertVals.push(userName); insertQ += ",?"; }
+    insertSql += ") VALUES (CURRENT_TIMESTAMP," + insertQ + ") ON CONFLICT(session_id) DO UPDATE SET updated_at = CURRENT_TIMESTAMP";
+    await env.DB.prepare(insertSql).bind(...insertVals).run();
+
 
     const conv = await env.DB.prepare(
       "SELECT id, summary FROM conversations WHERE session_id = ?"

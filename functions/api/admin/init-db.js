@@ -1,6 +1,10 @@
 ﻿/**
  * GET /api/admin/init-db-status
  * POST /api/admin/init-db (já existe)
+ * ALTER TABLE para adicionar campos cpf e profissional_cpf
+// Query para adicionar campos cpf e profissional_cpf:
+// ALTER TABLE conversations ADD COLUMN cpf TEXT DEFAULT NULL;
+// ALTER TABLE conversations ADD COLUMN profissional_cpf TEXT DEFAULT NULL;
  */
 
 function json(data, status = 200) {

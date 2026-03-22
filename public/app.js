@@ -5,7 +5,13 @@ const chatTitle = document.getElementById("chatTitle");
 const headerStatus = document.getElementById("headerStatus");
 
 
+
 let userType = null;
+let cpf = null;
+let profissionalCpf = null;
+let userName = null;
+let profissionalNome = null;
+let cpfStep = 0; // 0: não iniciado, 1: aguardando cpf paciente, 2: aguardando cpf profissional
 const messages = [];
 let isLoading = false;
 let statusText = headerStatus.textContent;
@@ -60,11 +66,41 @@ function showUserTypeSelection() {
   });
 }
 
+
 function askName() {
-  let question = "";
-  if (userType === "paciente") question = "Qual seu nome?";
-  else question = "Qual o nome do paciente?";
-  addMessage("assistant", question, true);
+  if (userType === "paciente") {
+    addMessage("assistant", "Qual seu nome?", true);
+    cpfStep = 1;
+  } else {
+    addMessage("assistant", "Qual o nome do paciente?", true);
+    cpfStep = 1;
+  }
+}
+
+function askCpf() {
+  addMessage("assistant", "Por favor, informe o CPF do paciente:", true);
+  cpfStep = 1;
+}
+
+function askProfissionalCpf() {
+  addMessage("assistant", "Por favor, informe o CPF do profissional de saúde:", true);
+  cpfStep = 2;
+}
+
+function isValidCPF(strCPF) {
+  strCPF = strCPF.replace(/\D/g, "");
+  if (strCPF.length !== 11 || /^([0-9])\1+$/.test(strCPF)) return false;
+  let sum = 0, rest;
+  for (let i = 1; i <= 9; i++) sum += parseInt(strCPF.substring(i - 1, i)) * (11 - i);
+  rest = (sum * 10) % 11;
+  if ((rest === 10) || (rest === 11)) rest = 0;
+  if (rest !== parseInt(strCPF.substring(9, 10))) return false;
+  sum = 0;
+  for (let i = 1; i <= 10; i++) sum += parseInt(strCPF.substring(i - 1, i)) * (12 - i);
+  rest = (sum * 10) % 11;
+  if ((rest === 10) || (rest === 11)) rest = 0;
+  if (rest !== parseInt(strCPF.substring(10, 11))) return false;
+  return true;
 }
 
 boot();
@@ -75,10 +111,57 @@ async function boot() {
 }
 
 
+
 async function send() {
   if (isLoading) return;
   const text = input.value.trim();
   if (!text) return;
+
+  // Fluxo de coleta de nome e CPF
+  if (cpfStep === 1 && !userName) {
+    userName = text;
+    addMessage("user", text);
+    messages.push({ role: "user", content: text });
+    input.value = "";
+    input.style.height = "auto";
+    askCpf();
+    return;
+  }
+  if (cpfStep === 1 && !cpf) {
+    if (!isValidCPF(text)) {
+      addMessage("assistant", "CPF inválido. Por favor, digite novamente:", true);
+      input.value = "";
+      return;
+    }
+    cpf = text.replace(/\D/g, "");
+    addMessage("user", text);
+    messages.push({ role: "user", content: text });
+    input.value = "";
+    input.style.height = "auto";
+    if (userType === "paciente") {
+      // Envia para backend para checar se já existe
+      await checkCpfAndStart();
+      return;
+    } else {
+      askProfissionalCpf();
+      return;
+    }
+  }
+  if (cpfStep === 2 && !profissionalCpf) {
+    if (!isValidCPF(text)) {
+      addMessage("assistant", "CPF do profissional inválido. Por favor, digite novamente:", true);
+      input.value = "";
+      return;
+    }
+    profissionalCpf = text.replace(/\D/g, "");
+    addMessage("user", text);
+    messages.push({ role: "user", content: text });
+    input.value = "";
+    input.style.height = "auto";
+    // Envia para backend para checar se já existe
+    await checkCpfAndStart();
+    return;
+  }
 
   addMessage("user", text);
   messages.push({ role: "user", content: text });
@@ -89,10 +172,13 @@ async function send() {
   setLoading(true);
 
   try {
-    // Envia user_type apenas na primeira mensagem
+    // Envia user_type, cpf, profissional_cpf, user_name na primeira mensagem útil
     const isFirstMessage = messages.length === 1;
     const payload = { messages, session_id: SESSION_ID };
     if (isFirstMessage && userType) payload.user_type = userType;
+    if (cpf) payload.cpf = cpf;
+    if (profissionalCpf) payload.profissional_cpf = profissionalCpf;
+    if (userName) payload.user_name = userName;
 
     const response = await fetch("/api/chat", {
       method: "POST",
@@ -114,6 +200,27 @@ async function send() {
     addMessage("assistant", "Erro de conexão. Tente novamente.");
   } finally {
     setLoading(false);
+  }
+}
+
+async function checkCpfAndStart() {
+  // Checa se CPF já existe no backend e cumprimenta se sim
+  try {
+    const payload = { cpf, profissional_cpf: profissionalCpf, user_type: userType };
+    const res = await fetch("/api/chat/check-cpf", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.exists && data.nome) {
+      addMessage("assistant", `Olá, ${data.nome}! Vamos iniciar a anamnese.`, true);
+    } else {
+      addMessage("assistant", "Vamos iniciar a anamnese.", true);
+    }
+    cpfStep = 0;
+  } catch {
+    addMessage("assistant", "Erro ao verificar CPF.", true);
   }
 }
 
