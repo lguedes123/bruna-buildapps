@@ -18,9 +18,50 @@ function parseCookies(request) {
   );
 }
 
-function isAuthorized(request, env) {
+async function verifySession(sessionCookie, secret) {
+  try {
+    const decodedSession = atob(sessionCookie);
+    const parts = decodedSession.split('|');
+
+    if (parts.length !== 3) return null;
+
+    const [username, timestamp, signature] = parts;
+    const now = Date.now();
+    const sessionAge = now - parseInt(timestamp, 10);
+
+    if (sessionAge > 86400000) return null;
+
+    const data = `${username}|${timestamp}`;
+    const encoder = new TextEncoder();
+    const secretBytes = encoder.encode(secret);
+    const dataBytes = encoder.encode(data);
+
+    const key = await crypto.subtle.importKey(
+      'raw',
+      secretBytes,
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+
+    const signatureBytes = new Uint8Array(
+      signature.match(/.{1,2}/g).map(byte => parseInt(byte, 16))
+    );
+
+    const isValid = await crypto.subtle.verify('HMAC', key, signatureBytes, dataBytes);
+
+    return isValid ? { username, timestamp: parseInt(timestamp, 10) } : null;
+  } catch {
+    return null;
+  }
+}
+
+async function isAuthorized(request, env) {
   const cookies = parseCookies(request);
-  return cookies.admin_session === env.ADMIN_SESSION_TOKEN;
+  const sessionCookie = cookies.admin_session;
+  if (!sessionCookie) return false;
+  const session = await verifySession(sessionCookie, env.SESSION_SECRET);
+  return !!session;
 }
 
 function safeJsonParse(value, fallback) {
@@ -42,7 +83,7 @@ const CONFIG_KEYS = [
 ];
 
 export async function onRequestGet(context) {
-  if (!isAuthorized(context.request, context.env)) {
+  if (!await isAuthorized(context.request, context.env)) {
     return json({ error: 'unauthorized' }, 401);
   }
 
@@ -74,7 +115,7 @@ export async function onRequestGet(context) {
 }
 
 export async function onRequestPut(context) {
-  if (!isAuthorized(context.request, context.env)) {
+  if (!await isAuthorized(context.request, context.env)) {
     return json({ error: 'unauthorized' }, 401);
   }
 
