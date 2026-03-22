@@ -4,6 +4,8 @@ const sendBtn = document.getElementById("sendBtn");
 const chatTitle = document.getElementById("chatTitle");
 const headerStatus = document.getElementById("headerStatus");
 
+
+let userType = null;
 const messages = [];
 let isLoading = false;
 let statusText = headerStatus.textContent;
@@ -34,21 +36,44 @@ input.addEventListener("keydown", (e) => {
 
 sendBtn.addEventListener("click", send);
 
+
+// Exibe seleção de tipo de usuário no início
+function showUserTypeSelection() {
+  const selectionDiv = document.createElement("div");
+  selectionDiv.className = "user-type-selection";
+  selectionDiv.innerHTML = `
+    <div class="user-type-title">Olá, vamos iniciar o processo de Anamnese Médica.<br>Por favor se identifique:</div>
+    <div class="user-type-buttons">
+      <button data-type="medico">Sou médico</button>
+      <button data-type="paciente">Sou paciente</button>
+      <button data-type="profissional">Sou profissional de saúde</button>
+    </div>
+  `;
+  chatMessages.appendChild(selectionDiv);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  selectionDiv.querySelectorAll("button").forEach(btn => {
+    btn.onclick = () => {
+      userType = btn.getAttribute("data-type");
+      selectionDiv.remove();
+      askName();
+    };
+  });
+}
+
+function askName() {
+  let question = "";
+  if (userType === "paciente") question = "Qual seu nome?";
+  else question = "Qual o nome do paciente?";
+  addMessage("assistant", question, true);
+}
+
 boot();
 
+
 async function boot() {
-  try {
-    const response = await fetch("/api/chat/public");
-    if (response.ok) {
-      const data = await response.json();
-      if (data?.chatTitle) chatTitle.textContent = data.chatTitle;
-      if (data?.chatDescription) { headerStatus.textContent = data.chatDescription; statusText = data.chatDescription; }
-      if (data?.welcomeMessage) addMessage("assistant", data.welcomeMessage, true);
-      return;
-    }
-  } catch {}
-  addMessage("assistant", "Ola! Sou seu assistente de anamnese. Como posso ajudar?", true);
+  showUserTypeSelection();
 }
+
 
 async function send() {
   if (isLoading) return;
@@ -64,10 +89,15 @@ async function send() {
   setLoading(true);
 
   try {
+    // Envia user_type apenas na primeira mensagem
+    const isFirstMessage = messages.length === 1;
+    const payload = { messages, session_id: SESSION_ID };
+    if (isFirstMessage && userType) payload.user_type = userType;
+
     const response = await fetch("/api/chat", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ messages, session_id: SESSION_ID })
+      body: JSON.stringify(payload)
     });
 
     const data = await response.json();

@@ -11,6 +11,7 @@ export async function onRequestPost(context) {
     const body = await context.request.json();
     const messages = Array.isArray(body.messages) ? body.messages : [];
     const sessionId = body.session_id || null;
+    const userType = body.user_type || null;
 
     if (!messages.length) return json({ error: "messages e obrigatorio" }, 400);
 
@@ -65,7 +66,7 @@ export async function onRequestPost(context) {
     // Persiste conversa e mensagens no D1 (nao bloqueia a resposta)
     if (sessionId) {
       context.waitUntil(
-        persistConversation(env, sessionId, messages, output, summaryInitial, summaryUpdate, config, openaiApiKey)
+        persistConversation(env, sessionId, messages, output, summaryInitial, summaryUpdate, config, openaiApiKey, userType)
       );
     }
 
@@ -76,14 +77,22 @@ export async function onRequestPost(context) {
   }
 }
 
-async function persistConversation(env, sessionId, messages, assistantReply, summaryInitialInstr, summaryUpdateInstr, config, openaiApiKey) {
+async function persistConversation(env, sessionId, messages, assistantReply, summaryInitialInstr, summaryUpdateInstr, config, openaiApiKey, userType) {
   try {
-    // Upsert conversa
-    await env.DB.prepare(`
-      INSERT INTO conversations (session_id, updated_at)
-      VALUES (?, CURRENT_TIMESTAMP)
-      ON CONFLICT(session_id) DO UPDATE SET updated_at = CURRENT_TIMESTAMP
-    `).bind(sessionId).run();
+    // Upsert conversa, agora com user_type
+    if (userType) {
+      await env.DB.prepare(`
+        INSERT INTO conversations (session_id, updated_at, user_type)
+        VALUES (?, CURRENT_TIMESTAMP, ?)
+        ON CONFLICT(session_id) DO UPDATE SET updated_at = CURRENT_TIMESTAMP
+      `).bind(sessionId, userType).run();
+    } else {
+      await env.DB.prepare(`
+        INSERT INTO conversations (session_id, updated_at)
+        VALUES (?, CURRENT_TIMESTAMP)
+        ON CONFLICT(session_id) DO UPDATE SET updated_at = CURRENT_TIMESTAMP
+      `).bind(sessionId).run();
+    }
 
     const conv = await env.DB.prepare(
       "SELECT id, summary FROM conversations WHERE session_id = ?"
