@@ -124,6 +124,21 @@ export async function onRequestPost(context) {
 }
 
 async function persistConversation(env, sessionId, messages, assistantReply, summaryInitialInstr, summaryUpdateInstr, config, openaiApiKey, userType) {
+  // Utilidades locais
+  function fillTemplate(template, data) {
+    return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => data[key] ?? '');
+  }
+  async function getText(env, key, cache) {
+    if (cache && cache[key] !== undefined) return cache[key];
+    try {
+      if (!env.BUILDAPPS) return '';
+      const obj = await env.BUILDAPPS.get(key);
+      const text = obj ? await obj.text() : '';
+      if (cache) cache[key] = text;
+      return text;
+    } catch { return ''; }
+  }
+  const cache = {};
   try {
     // Upsert conversa, agora com user_type
     if (userType) {
@@ -163,47 +178,57 @@ async function persistConversation(env, sessionId, messages, assistantReply, sum
       ]);
     }
 
-    // Atualiza o resumo via OpenAI
-    if (!summaryInitialInstr && !summaryUpdateInstr) return;
-
-    const summaryInstruction = existingSummary
-      ? `${summaryUpdateInstr}\n\nResumo atual:\n${existingSummary}\n\nNova mensagem do paciente: "${lastUserMsg?.content ?? ''}"\nResposta do agente: "${assistantReply}"`
-      : `${summaryInitialInstr}\n\nConversa ate agora:\n${messages.map(m => `${m.role === 'user' ? 'Paciente' : 'Agente'}: ${m.content}`).join('\n')}\nAgente: ${assistantReply}`;
-
-    const summaryResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "authorization": `Bearer ${openaiApiKey}`
-      },
-      body: JSON.stringify({
-        model: config.model || "gpt-4o-mini",
-        messages: [{ role: "user", content: summaryInstruction }],
-        temperature: 0.3,
-        max_tokens: 800
-      })
-    });
-
-    if (summaryResponse.ok) {
-      const summaryData = await summaryResponse.json();
-      const newSummary = summaryData?.choices?.[0]?.message?.content ?? "";
-      if (newSummary) {
-        // Tenta extrair o nome do paciente da primeira linha do resumo
-        const nameMatch = newSummary.match(/Identifica[cç][aã]o[:\s]+([A-Z][a-zA-Zaáéíóúàèìòùãõâêîôûç ]{2,40})/i)
-                       || newSummary.match(/paciente[:\s]+([A-Z][a-zA-Zaáéíóúàèìòùãõâêîôûç ]{2,40})/i);
-        const extractedName = nameMatch?.[1]?.trim() || null;
-
-        const updateStmts = [env.DB.prepare(
-          "UPDATE conversations SET summary = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
-        ).bind(newSummary, convId)];
-
-        if (extractedName) {
-          updateStmts.push(env.DB.prepare(
-            "UPDATE conversations SET user_name = ? WHERE id = ? AND (user_name IS NULL OR user_name = '')"
-          ).bind(extractedName, convId));
+    // Atualiza o resumo usando o template do R2
+    const formTemplate = await getText(env, "templates/form.txt", cache);
+    if (formTemplate) {
+      // Monta dados básicos para preencher o template
+      const data = {
+        resumo: assistantReply,
+        ultima_mensagem: lastUserMsg?.content || '',
+        user_type: userType || '',
+        conversa: messages.map(m => `${m.role}: ${m.content}`).join('\n')
+      };
+      const filled = fillTemplate(formTemplate, data);
+      await env.DB.prepare(
+        "UPDATE conversations SET summary = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+      ).bind(filled, convId).run();
+    } else {
+      // fallback: mantém lógica anterior
+      if (!summaryInitialInstr && !summaryUpdateInstr) return;
+      const summaryInstruction = existingSummary
+        ? `${summaryUpdateInstr}\n\nResumo atual:\n${existingSummary}\n\nNova mensagem do paciente: "${lastUserMsg?.content ?? ''}"\nResposta do agente: "${assistantReply}"`
+        : `${summaryInitialInstr}\n\nConversa ate agora:\n${messages.map(m => `${m.role === 'user' ? 'Paciente' : 'Agente'}: ${m.content}`).join('\n')}\nAgente: ${assistantReply}`;
+      const summaryResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "authorization": `Bearer ${openaiApiKey}`
+        },
+        body: JSON.stringify({
+          model: config.model || "gpt-4o-mini",
+          messages: [{ role: "user", content: summaryInstruction }],
+          temperature: 0.3,
+          max_tokens: 800
+        })
+      });
+      if (summaryResponse.ok) {
+        const summaryData = await summaryResponse.json();
+        const newSummary = summaryData?.choices?.[0]?.message?.content ?? "";
+        if (newSummary) {
+          // Tenta extrair o nome do paciente da primeira linha do resumo
+          const nameMatch = newSummary.match(/Identifica[cç][aã]o[:\s]+([A-Z][a-zA-Zaáéíóúàèìòùãõâêîôûç ]{2,40})/i)
+                             || newSummary.match(/paciente[:\s]+([A-Z][a-zA-Zaáéíóúàèìòùãõâêîôûç ]{2,40})/i);
+          const extractedName = nameMatch?.[1]?.trim() || null;
+          const updateStmts = [env.DB.prepare(
+            "UPDATE conversations SET summary = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+          ).bind(newSummary, convId)];
+          if (extractedName) {
+            updateStmts.push(env.DB.prepare(
+              "UPDATE conversations SET user_name = ? WHERE id = ? AND (user_name IS NULL OR user_name = '')"
+            ).bind(extractedName, convId));
+          }
+          await env.DB.batch(updateStmts);
         }
-
-        await env.DB.batch(updateStmts);
       }
     }
   } catch (_) {
