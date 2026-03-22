@@ -278,8 +278,8 @@ body {
   padding: 24px 16px 48px;
 }
 .admin-titlebar {
-  background: #075e54;
-  color: #fff;
+  background: #fff;
+  color: #075e54;
   padding: 14px 20px;
   display: flex;
   align-items: center;
@@ -287,15 +287,26 @@ body {
   position: sticky;
   top: 0;
   z-index: 10;
+  border-bottom: 1.5px solid #e0e0e0;
 }
-.admin-titlebar h1 { font-size: 18px; font-weight: 600; }
+.admin-titlebar h1 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #075e54;
+}
 .admin-titlebar a {
-  color: rgba(255,255,255,0.85);
+  color: #075e54;
   text-decoration: none;
   font-size: 13px;
   padding: 4px 10px;
-  border: 1px solid rgba(255,255,255,0.4);
+  border: 1px solid #b2dfdb;
   border-radius: 12px;
+  background: #f6fffc;
+  transition: background 0.2s, color 0.2s;
+}
+.admin-titlebar a:hover {
+  background: #e0f7fa;
+  color: #128c7e;
 }
 .admin-card {
   background: #fff;
