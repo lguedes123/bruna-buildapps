@@ -9,7 +9,7 @@ function showStatus(message, type = "success") {
 
 async function loadAvailableModels() {
   try {
-    const res = await fetch(`${API_BASE}/admin/models`, { credentials: "include" });
+    const res = await fetch("/api/admin/models", { credentials: "include" });
     if (!res.ok) return;
     const { available_models } = await res.json();
     const sel = document.getElementById("model");
@@ -28,7 +28,7 @@ async function loadConfiguration() {
   try {
     await loadAvailableModels();
 
-    const res = await fetch(`${API_BASE}/admin/config`, { credentials: "include" });
+    const res = await fetch("/api/admin/config", { credentials: "include" });
     if (!res.ok) {
       if (res.status === 401) window.location.href = "/login.html";
       throw new Error(`HTTP ${res.status}`);
@@ -78,7 +78,7 @@ async function saveConfiguration(e) {
 
   try {
     // Salva modelo
-    const mRes = await fetch(`${API_BASE}/admin/models`, {
+    const mRes = await fetch("/api/admin/models", {
       method: "PUT", credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ model })
@@ -86,7 +86,7 @@ async function saveConfiguration(e) {
     if (!mRes.ok) { const e = await mRes.json(); throw new Error(e.error || "Erro ao salvar modelo"); }
 
     // Salva config geral
-    const cRes = await fetch(`${API_BASE}/admin/config`, {
+    const cRes = await fetch("/api/admin/config", {
       method: "PUT", credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ config: { model }, prompt, flow, public: publicData, moderation_message, summary_initial, summary_update, openai_api_key })
@@ -104,7 +104,7 @@ function handleLogout() {
   window.location.href = "/index.html";
 }
 
-const API_BASE = "/api";
+
 
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("adminForm");
