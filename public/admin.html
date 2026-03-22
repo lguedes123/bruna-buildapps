@@ -1,17 +1,20 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Admin - Assistente de Anamnese</title>
+  <title>Admin - Agente de Anamnese</title>
   <link rel="icon" type="image/x-icon" href="/Amamnese-ico.ico">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body class="admin-page">
 
   <div class="admin-titlebar">
-    <h1>⚙️ Configurações</h1>
-    <a href="/index.html">← Chat</a>
+    <h1>Configuracoes</h1>
+    <div style="display:flex;gap:12px;align-items:center;">
+      <a href="/historico.html" class="btn-secondary" style="text-decoration:none;padding:6px 14px;font-size:13px;">Historico</a>
+      <a href="/index.html">Chat</a>
+    </div>
   </div>
 
   <div class="admin-container">
@@ -23,347 +26,101 @@
       <!-- Modelo de IA -->
       <div class="admin-card">
         <h2>Modelo de IA</h2>
-
         <div class="form-group">
-          <div class="label-row">
-            <label>Provedor</label>
-          </div>
+          <div class="label-row"><label>Provedor</label></div>
           <input type="text" value="OpenAI" disabled style="opacity:0.6;cursor:not-allowed;">
         </div>
-
         <div class="form-group">
           <div class="label-row">
             <label>Modelo</label>
-            <span class="info-icon">?
-              <span class="tooltip">O modelo determina a capacidade da IA. gpt-4o é o mais capaz; gpt-4o-mini é mais rápido e econômico.</span>
-            </span>
+            <span class="info-icon">?<span class="tooltip">gpt-4o e o mais capaz; gpt-4o-mini e mais rapido e economico.</span></span>
           </div>
           <select id="model">
             <option value="gpt-4o">GPT-4o — mais inteligente</option>
-            <option value="gpt-4o-mini" selected>GPT-4o Mini — padrão, rápido</option>
-            <option value="gpt-4-turbo">GPT-4 Turbo — intermediário</option>
+            <option value="gpt-4o-mini" selected>GPT-4o Mini — padrao, rapido</option>
+            <option value="gpt-4-turbo">GPT-4 Turbo — intermediario</option>
             <option value="gpt-4">GPT-4 — legado</option>
-            <option value="gpt-3.5-turbo">GPT-3.5 Turbo — mais econômico</option>
+            <option value="gpt-3.5-turbo">GPT-3.5 Turbo — mais economico</option>
           </select>
         </div>
       </div>
 
-      <!-- Prompt do sistema -->
+      <!-- Chat publico -->
       <div class="admin-card">
-        <h2>Instruções do Assistente</h2>
-
+        <h2>Identidade do Chat</h2>
         <div class="form-group">
-          <div class="label-row">
-            <label>Prompt do sistema</label>
-            <span class="info-icon">?
-              <span class="tooltip">As instruções que definem o comportamento e personalidade do assistente. Seja específico sobre o contexto médico educacional.</span>
-            </span>
-          </div>
-          <textarea id="prompt" rows="5"
-            placeholder="Ex: Você é um assistente médico educacional especializado em anamnese. Apoie estudantes de medicina com linguagem didática...">
-          </textarea>
+          <div class="label-row"><label>Titulo do chat</label></div>
+          <input type="text" id="chatTitle" placeholder="Agente de Anamnese Medica Hibrida">
         </div>
-
         <div class="form-group">
-          <div class="label-row">
-            <label>Fluxo de atendimento</label>
-            <span class="info-icon">?
-              <span class="tooltip">Os passos que o assistente deve seguir durante uma consulta. Defina a sequência de perguntas e avaliações.</span>
-            </span>
-          </div>
-          <textarea id="flow" rows="5"
-            placeholder="Ex: 1. Coletar queixa principal&#10;2. Investigar história da doença atual&#10;3. Revisar sistemas...">
-          </textarea>
+          <div class="label-row"><label>Descricao (subtitulo no header)</label></div>
+          <input type="text" id="chatDescription" placeholder="Agente clinico de IA para anamnese hibrida simulada.">
         </div>
-      </div>
-
-      <!-- Público / metadados -->
-      <div class="admin-card">
-        <h2>Metadados do Chat</h2>
-
         <div class="form-group">
-          <div class="label-row">
-            <label>Configuração pública (JSON)</label>
-            <span class="info-icon">?
-              <span class="tooltip">Define o título do chat e mensagem de boas-vindas. Ex: {"chatTitle":"Assistente","welcomeMessage":"Olá!"}</span>
-            </span>
-          </div>
-          <textarea id="public" rows="4"
-            placeholder='{"chatTitle":"Assistente de Anamnese","welcomeMessage":"Olá! Como posso ajudar?"}'>
-          </textarea>
+          <div class="label-row"><label>Mensagem de boas-vindas</label></div>
+          <textarea id="welcomeMessage" rows="3" placeholder="Ola! Me diga seu nome para iniciarmos."></textarea>
         </div>
-      </div>
-
-      <!-- Ações -->
-      <div class="admin-actions">
-        <button type="button" class="btn-secondary" onclick="handleLogout()">🚪 Sair</button>
-        <button type="submit" class="btn-primary">💾 Salvar</button>
-      </div>
-
-    </form>
-  </div>
-
-  <script src="/admin.js"></script>
-</body>
-</html>
-  <style>
-    .admin-container {
-      max-width: 600px;
-      margin: 2rem auto;
-      padding: 2rem;
-      background: #f9f9f9;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-    .admin-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 2rem;
-    }
-
-    .back-link {
-      color: #0078d4;
-      text-decoration: none;
-      font-size: 0.9rem;
-    }
-
-    .back-link:hover {
-      text-decoration: underline;
-    }
-
-    .form-group {
-      margin-bottom: 1.5rem;
-    }
-
-    .label-row {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      margin-bottom: 0.5rem;
-    }
-
-    label {
-      font-weight: 600;
-      color: #333;
-      display: block;
-      margin-bottom: 0.25rem;
-    }
-
-    .info-icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: #0078d4;
-      color: white;
-      font-size: 12px;
-      font-weight: bold;
-      cursor: help;
-      position: relative;
-    }
-
-    .info-icon:hover::after {
-      content: attr(data-tooltip);
-      position: absolute;
-      bottom: 125%;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #333;
-      color: white;
-      padding: 0.75rem;
-      border-radius: 4px;
-      font-size: 0.85rem;
-      font-weight: 400;
-      white-space: pre-wrap;
-      max-width: 280px;
-      z-index: 1000;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    }
-
-    .info-icon:hover::before {
-      content: "";
-      position: absolute;
-      bottom: 115%;
-      left: 50%;
-      transform: translateX(-50%);
-      border: 6px solid transparent;
-      border-top-color: #333;
-      z-index: 1000;
-    }
-
-    input[type="text"],
-    select {
-      width: 100%;
-      padding: 0.75rem;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 1rem;
-      font-family: inherit;
-    }
-
-    input[type="text"]:focus,
-    select:focus {
-      outline: none;
-      border-color: #0078d4;
-      box-shadow: 0 0 0 3px rgba(0,120,212,0.1);
-    }
-
-    .button-group {
-      display: flex;
-      gap: 1rem;
-      margin-top: 2rem;
-    }
-
-    button {
-      flex: 1;
-      padding: 0.75rem 1.5rem;
-      border: none;
-      border-radius: 4px;
-      font-size: 1rem;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
-
-    .btn-save {
-      background: #0078d4;
-      color: white;
-    }
-
-    .btn-save:hover {
-      background: #005ea1;
-    }
-
-    .btn-save:active {
-      transform: scale(0.98);
-    }
-
-    .btn-logout {
-      background: #e0e0e0;
-      color: #333;
-    }
-
-    .btn-logout:hover {
-      background: #d0d0d0;
-    }
-
-    .status-message {
-      padding: 0.75rem;
-      border-radius: 4px;
-      margin-bottom: 1rem;
-      display: none;
-    }
-
-    .status-message.success {
-      background: #e6f4ea;
-      color: #1e7e34;
-      border: 1px solid #81c995;
-      display: block;
-    }
-
-    .status-message.error {
-      background: #fce8e6;
-      color: #c5221f;
-      border: 1px solid #f1b4b4;
-      display: block;
-    }
-  </style>
-</head>
-<body>
-  <div class="admin-container">
-    <div class="admin-header">
-      <h1>Configuração do Chatbot</h1>
-      <a href="/index.html" class="back-link">← Voltar</a>
-    </div>
-
-    <div id="statusMessage" class="status-message"></div>
-
-    <form id="adminForm">
-      <!-- Provider (fixo como OpenAI) -->
-      <div class="form-group">
-        <div class="label-row">
-          <label>👤 Provedor</label>
-          <div class="info-icon" data-tooltip="O provedor é o serviço de IA que alimenta o chatbot. OpenAI oferece modelos como GPT-4, usados para análise e síntese de informações médicas.">?</div>
-        </div>
-        <input 
-          type="text" 
-          id="provider" 
-          value="OpenAI" 
-          disabled
-          placeholder="OpenAI"
-        >
-      </div>
-
-      <!-- Modelo -->
-      <div class="form-group">
-        <div class="label-row">
-          <label>🧠 Modelo de IA</label>
-          <div class="info-icon" data-tooltip="O modelo determina quanto 'conhecimento' a IA tem. 'gpt-4o' é o mais capaz (caro), ideal para casos complexos. 'gpt-4o-mini' é mais rápido e econômico. Escolha conforme sua necessidade clínica.">?</div>
-        </div>
-        <select id="model">
-          <option value="gpt-4o">GPT-4o (mais inteligente, mais lento)</option>
-          <option value="gpt-4o-mini" selected>GPT-4o Mini (padrão, rápido)</option>
-          <option value="gpt-4-turbo">GPT-4 Turbo (intermediário)</option>
-          <option value="gpt-4">GPT-4 (legado)</option>
-          <option value="gpt-3.5-turbo">GPT-3.5 Turbo (mais econômico)</option>
-        </select>
       </div>
 
       <!-- Prompt -->
-      <div class="form-group">
-        <div class="label-row">
-          <label>📝 Instruções do Chatbot</label>
-          <div class="info-icon" data-tooltip="São as 'instruções iniciais' que você dá ao assistente. Ex: 'Você é um assistente médico especializado em cardiologia que fornece informações educacionais'.">?</div>
+      <div class="admin-card">
+        <h2>Instrucoes do Agente</h2>
+        <div class="form-group">
+          <div class="label-row">
+            <label>Prompt do sistema</label>
+            <span class="info-icon">?<span class="tooltip">As instrucoes que definem o comportamento clinico do agente.</span></span>
+          </div>
+          <textarea id="prompt" rows="10" placeholder="# CONTEXTO E PAPEL..."></textarea>
         </div>
-        <textarea 
-          id="prompt" 
-          rows="4"
-          placeholder="Ex: Você é um assistente médico educacional especializado em diagnóstico clínico. Forneça explicações claras e baseadas em evidências científicas."
-          style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; font-size: 0.9rem;"
-        ></textarea>
+        <div class="form-group">
+          <div class="label-row">
+            <label>Fluxo de atendimento</label>
+            <span class="info-icon">?<span class="tooltip">Passos que o agente segue durante a consulta.</span></span>
+          </div>
+          <textarea id="flow" rows="6" placeholder="1. Coletar queixa principal&#10;2. Investigar HDA..."></textarea>
+        </div>
       </div>
 
-      <!-- Fluxo de Trabalho -->
-      <div class="form-group">
-        <div class="label-row">
-          <label>🔄 Fluxo de Atendimento</label>
-          <div class="info-icon" data-tooltip="Define como o chatbot deve se comportar durante a consulta. Ex: '1. Escutar queixa principal 2. Fazer perguntas de acompanhamento 3. Sugerir diagnósticos diferenciais 4. Recomendar próximos passos'.">?</div>
+      <!-- Moderacao -->
+      <div class="admin-card">
+        <h2>Mensagem de Moderacao</h2>
+        <div class="form-group">
+          <div class="label-row">
+            <label>Resposta a conteudo fora de escopo</label>
+            <span class="info-icon">?<span class="tooltip">Mensagem exibida quando o paciente envia conteudo inadequado ou fora do escopo clinico.</span></span>
+          </div>
+          <textarea id="moderation_message" rows="5" placeholder="Ola. Identifiquei que..."></textarea>
         </div>
-        <textarea 
-          id="flow" 
-          rows="4"
-          placeholder="Ex: 1. Coletar história clínica detalhada&#10;2. Perguntar sobre sintomas associados&#10;3. Avaliar fatores de risco&#10;4. Sugerir investigações complementares"
-          style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; font-size: 0.9rem;"
-        ></textarea>
       </div>
 
-      <!-- Chave Pública (Configuração de Roteamento) -->
-      <div class="form-group">
-        <div class="label-row">
-          <label>🌐 Configuração de Roteamento</label>
-          <div class="info-icon" data-tooltip="Define em que situações o chatbot deve responder ou redirecionar. Ex: 'responder a questões educacionais, redirecionar emergências para 192/SAMU'.">?</div>
+      <!-- Resumo automatico -->
+      <div class="admin-card">
+        <h2>Resumo Clinico Automatico</h2>
+        <div class="form-group">
+          <div class="label-row">
+            <label>Instrucao: como gerar o primeiro resumo</label>
+            <span class="info-icon">?<span class="tooltip">Define como a IA deve criar o resumo clinico inicial da conversa.</span></span>
+          </div>
+          <textarea id="summary_initial" rows="5" placeholder="O agente deve gerar um resumo clinico..."></textarea>
         </div>
-        <textarea 
-          id="public" 
-          rows="3"
-          placeholder='Ex: {"routes": ["/chat"], "emergency_keywords": ["infarto", "acidente vascular"]}'
-          style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; font-size: 0.9rem;"
-        ></textarea>
+        <div class="form-group">
+          <div class="label-row">
+            <label>Instrucao: como atualizar o resumo</label>
+            <span class="info-icon">?<span class="tooltip">Define como a IA deve atualizar o resumo a cada nova mensagem.</span></span>
+          </div>
+          <textarea id="summary_update" rows="5" placeholder="Atualizar dinamicamente o resumo..."></textarea>
+        </div>
       </div>
 
-      <!-- Botões -->
-      <div class="button-group">
-        <button type="submit" class="btn-save">💾 Salvar Configurações</button>
-        <button type="button" class="btn-logout" onclick="handleLogout()">🚪 Sair</button>
+      <!-- Acoes -->
+      <div class="admin-actions">
+        <button type="button" class="btn-secondary" onclick="handleLogout()">Sair</button>
+        <button type="submit" class="btn-primary">Salvar</button>
       </div>
+
     </form>
   </div>
 
   <script src="/admin.js"></script>
 </body>
-</html>
 </html>

@@ -1,66 +1,54 @@
-const API_BASE = "/api";
+﻿const API_BASE = "/api";
 
 function showStatus(message, type = "success") {
-  const statusEl = document.getElementById("statusMessage");
-  statusEl.textContent = message;
-  statusEl.className = `status-message ${type}`;
-  setTimeout(() => {
-    statusEl.className = "status-message";
-  }, 3000);
+  const el = document.getElementById("statusMessage");
+  el.textContent = message;
+  el.className = `status-message ${type}`;
+  setTimeout(() => { el.className = "status-message"; }, 3500);
 }
 
 async function loadAvailableModels() {
   try {
-    const res = await fetch(`${API_BASE}/admin/models`, {
-      credentials: "include"
-    });
-
-    if (!res.ok) {
-      throw new Error("Erro ao carregar modelos");
-    }
-
+    const res = await fetch(`${API_BASE}/admin/models`, { credentials: "include" });
+    if (!res.ok) return;
     const { available_models } = await res.json();
-    const modelSelect = document.getElementById("model");
-    
-    // Limpar opciones anteriores
-    modelSelect.innerHTML = "";
-    
-    // Adicionar modelos
-    available_models.forEach(model => {
-      const option = document.createElement("option");
-      option.value = model.id;
-      option.textContent = `${model.name} - ${model.description}`;
-      if (model.default) {
-        option.selected = true;
-      }
-      modelSelect.appendChild(option);
+    const sel = document.getElementById("model");
+    sel.innerHTML = "";
+    available_models.forEach(m => {
+      const opt = document.createElement("option");
+      opt.value = m.id;
+      opt.textContent = `${m.name} - ${m.description}`;
+      if (m.default) opt.selected = true;
+      sel.appendChild(opt);
     });
-  } catch (error) {
-    showStatus(`Erro ao carregar modelos: ${error.message}`, "error");
-  }
+  } catch (_) {}
 }
 
 async function loadConfiguration() {
   try {
     await loadAvailableModels();
 
-    const res = await fetch(`${API_BASE}/admin/config`, {
-      credentials: "include"
-    });
-
+    const res = await fetch(`${API_BASE}/admin/config`, { credentials: "include" });
     if (!res.ok) {
-      if (res.status === 401) {
-        window.location.href = "/login.html";
-      }
+      if (res.status === 401) window.location.href = "/login.html";
       throw new Error(`HTTP ${res.status}`);
     }
 
-    const { config, prompt, flow, public: publicData } = await res.json();
+    const data = await res.json();
+    const pub  = data.public || {};
 
-    document.getElementById("model").value = config.model || "gpt-4o-mini";
-    document.getElementById("prompt").value = prompt || "";
-    document.getElementById("flow").value = flow || "";
-    document.getElementById("public").value = JSON.stringify(publicData, null, 2) || "";
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ""; };
+
+    set("model",               data.config?.model || "gpt-4o-mini");
+    set("prompt",              data.prompt);
+    set("flow",                data.flow);
+    set("chatTitle",           pub.chatTitle);
+    set("chatDescription",     pub.chatDescription);
+    set("welcomeMessage",      pub.welcomeMessage);
+    set("moderation_message",  data.moderation_message);
+    set("summary_initial",     data.summary_initial);
+    set("summary_update",      data.summary_update);
+
   } catch (error) {
     showStatus(`Erro ao carregar: ${error.message}`, "error");
   }
@@ -69,62 +57,43 @@ async function loadConfiguration() {
 async function saveConfiguration(e) {
   e.preventDefault();
 
-  const model = document.getElementById("model").value;
-  const prompt = document.getElementById("prompt").value;
-  const flow = document.getElementById("flow").value;
-  const publicData = document.getElementById("public").value;
+  const g = id => document.getElementById(id)?.value ?? "";
+
+  const model           = g("model");
+  const prompt          = g("prompt");
+  const flow            = g("flow");
+  const moderation_message = g("moderation_message");
+  const summary_initial = g("summary_initial");
+  const summary_update  = g("summary_update");
+
+  const publicData = {
+    chatTitle:       g("chatTitle"),
+    chatDescription: g("chatDescription"),
+    welcomeMessage:  g("welcomeMessage")
+  };
+
+  if (!model) { showStatus("Selecione um modelo.", "error"); return; }
 
   try {
-    if (!model) {
-      throw new Error("Selecione um modelo");
-    }
+    // Salva modelo
+    const mRes = await fetch(`${API_BASE}/admin/models`, {
+      method: "PUT", credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model })
+    });
+    if (!mRes.ok) { const e = await mRes.json(); throw new Error(e.error || "Erro ao salvar modelo"); }
 
-    // Primeiro, salva o modelo via endpoints separados
-    await saveModel(model);
-    
-    // Depois, salva o config geral
-    await saveConfig({ prompt, flow, publicData });
+    // Salva config geral
+    const cRes = await fetch(`${API_BASE}/admin/config`, {
+      method: "PUT", credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ config: { model }, prompt, flow, public: publicData, moderation_message, summary_initial, summary_update })
+    });
+    if (!cRes.ok) { const e = await cRes.json(); throw new Error(e.error || "Erro ao salvar config"); }
 
-    showStatus("✓ Configurações salvas com sucesso!");
+    showStatus("Configuracoes salvas com sucesso!");
   } catch (error) {
-    showStatus(`✗ Erro: ${error.message}`, "error");
-  }
-}
-
-async function saveModel(model) {
-  const res = await fetch(`${API_BASE}/admin/models`, {
-    method: "PUT",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model })
-  });
-
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || "Erro ao salvar modelo");
-  }
-}
-
-async function saveConfig(data) {
-  const res = await fetch(`${API_BASE}/admin/config`, {
-    method: "PUT",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      config: {
-        provider: "openai",
-        model: document.getElementById("model").value,
-        updated_at: new Date().toISOString()
-      },
-      prompt: data.prompt,
-      flow: data.flow,
-      public: data.publicData ? JSON.parse(data.publicData) : {}
-    })
-  });
-
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || "Erro ao salvar configurações");
+    showStatus(`Erro: ${error.message}`, "error");
   }
 }
 
@@ -133,11 +102,8 @@ function handleLogout() {
   window.location.href = "/index.html";
 }
 
-// Carregar configurações ao abrir a página
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("adminForm");
-  if (form) {
-    form.addEventListener("submit", saveConfiguration);
-  }
+  if (form) form.addEventListener("submit", saveConfiguration);
   loadConfiguration();
 });
