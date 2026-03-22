@@ -1,4 +1,4 @@
-function json(data, status = 200) {
+﻿function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: { 'Content-Type': 'application/json' },
@@ -10,37 +10,31 @@ function isAuthorized(request) {
   return cookie.includes('admin_session=');
 }
 
-export async function onRequestGet(context) {
-  const authorized = isAuthorized(context.request);
-  if (!authorized) {
-    return json({ error: "unauthorized" }, 401);
-  }
+const CONFIG_KEYS = "'openai_config','prompt','flow','public','moderation_message','summary_initial','summary_update'";
 
-  const env = context.env;
+export async function onRequestGet(context) {
+  if (!isAuthorized(context.request)) return json({ error: "unauthorized" }, 401);
 
   try {
-    const results = await env.DB.prepare(
-      "SELECT key, value FROM configs WHERE key IN ('openai_config', 'prompt', 'flow', 'public')"
+    const results = await context.env.DB.prepare(
+      `SELECT key, value FROM configs WHERE key IN (${CONFIG_KEYS})`
     ).all();
 
-    const configData = {};
+    const d = {};
     results.results?.forEach(row => {
-      if (row.key === 'openai_config') {
-        configData.config = JSON.parse(row.value || '{}');
-      } else if (row.key === 'prompt') {
-        configData.prompt = row.value || '';
-      } else if (row.key === 'flow') {
-        configData.flow = row.value || '';
-      } else if (row.key === 'public') {
-        configData.public = JSON.parse(row.value || '{}');
-      }
+      if (row.key === 'openai_config') d.config = JSON.parse(row.value || '{}');
+      else if (row.key === 'public') d.public = JSON.parse(row.value || '{}');
+      else d[row.key] = row.value || '';
     });
 
     return json({
-      config: configData.config || {},
-      prompt: configData.prompt || "",
-      flow: configData.flow || "",
-      public: configData.public || {}
+      config: d.config || {},
+      prompt: d.prompt || '',
+      flow: d.flow || '',
+      public: d.public || {},
+      moderation_message: d.moderation_message || '',
+      summary_initial: d.summary_initial || '',
+      summary_update: d.summary_update || ''
     });
   } catch (error) {
     return json({ error: error.message }, 500);
@@ -48,63 +42,32 @@ export async function onRequestGet(context) {
 }
 
 export async function onRequestPut(context) {
-  const authorized = isAuthorized(context.request);
-  if (!authorized) {
-    return json({ error: "unauthorized" }, 401);
-  }
+  if (!isAuthorized(context.request)) return json({ error: "unauthorized" }, 401);
 
-  const env = context.env;
   const body = await context.request.json();
+  const { config, prompt, flow, public: publicData, moderation_message, summary_initial, summary_update } = body;
 
-  const {
-    config,
-    prompt,
-    flow,
-    public: publicData
-  } = body;
+  if (!config?.model) return json({ error: "config invalida" }, 400);
 
-  if (!config || !config.provider || !config.model) {
-    return json({ error: "config inválida" }, 400);
-  }
+  const now = new Date().toISOString();
 
-  config.updated_at = new Date().toISOString();
+  const upsert = (key, val) => context.env.DB.prepare(
+    "INSERT INTO configs (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP"
+  ).bind(key, val);
 
   try {
-    const updates = [
-      env.DB.prepare(
-        "INSERT INTO configs (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP"
-      ).bind("openai_config", JSON.stringify(config, null, 2)),
+    await Promise.all([
+      upsert("openai_config",       JSON.stringify({ provider: "openai", model: config.model, updated_at: now })).run(),
+      upsert("prompt",              String(prompt              ?? '')).run(),
+      upsert("flow",                String(flow                ?? '')).run(),
+      upsert("public",              JSON.stringify(publicData  ?? {})).run(),
+      upsert("moderation_message",  String(moderation_message  ?? '')).run(),
+      upsert("summary_initial",     String(summary_initial     ?? '')).run(),
+      upsert("summary_update",      String(summary_update      ?? '')).run()
+    ]);
 
-      env.DB.prepare(
-        "INSERT INTO configs (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP"
-      ).bind("prompt", String(prompt ?? "")),
-
-      env.DB.prepare(
-        "INSERT INTO configs (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP"
-      ).bind("flow", String(flow ?? "")),
-
-      env.DB.prepare(
-        "INSERT INTO configs (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP"
-      ).bind("public", JSON.stringify(publicData ?? {}, null, 2))
-    ];
-
-    await Promise.all(updates.map(q => q.run()));
-
-    return json({ ok: true, updated_at: config.updated_at });
+    return json({ ok: true, updated_at: now });
   } catch (error) {
     return json({ error: error.message }, 500);
   }
-
-  const expected = request.headers.get("x-admin-token");
-  return expected && expected === "buildapps-admin-2026";
-}
-
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      "cache-control": "no-store"
-    }
-  });
 }
