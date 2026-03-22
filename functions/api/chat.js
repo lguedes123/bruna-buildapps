@@ -25,13 +25,19 @@ export async function onRequestPost(context) {
       env.DB.prepare("SELECT value FROM configs WHERE key = 'summary_update' LIMIT 1").first()
     ]);
 
-    const config          = configRow ? JSON.parse(configRow.value) : { model: "gpt-4o-mini" };
-    const prompt          = promptRow?.value || "";
-    const flow            = flowRow?.value || "";
-    const summaryInitial  = summaryInitialRow?.value || "";
-    const summaryUpdate   = summaryUpdateRow?.value || "";
+    const config             = configRow ? JSON.parse(configRow.value) : { model: "gpt-4o-mini" };
+    const prompt             = promptRow?.value || "";
+    const flow               = flowRow?.value || "";
+    const moderationMessage  = moderationRow?.value || "";
+    const summaryInitial     = summaryInitialRow?.value || "";
+    const summaryUpdate      = summaryUpdateRow?.value || "";
 
-    const systemText = flow ? `${prompt}\n\nFluxo:\n${flow}`.trim() : prompt.trim();
+    const systemParts = [prompt];
+    if (flow) systemParts.push(`Fluxo:\n${flow}`);
+    if (moderationMessage) systemParts.push(
+      `Moderacao: Se o paciente enviar conteudo fora do escopo clinico ou linguagem inadequada, responda EXATAMENTE com este texto: "${moderationMessage}"`
+    );
+    const systemText = systemParts.join("\n\n").trim();
 
     // Envia para OpenAI
     const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -110,7 +116,7 @@ async function persistConversation(env, sessionId, messages, assistantReply, sum
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "authorization": `Bearer ${globalThis.OPENAI_API_KEY_SUMMARY || ''}`
+        "authorization": `Bearer ${env.OPENAI_API_KEY}`
       },
       body: JSON.stringify({
         model: config.model || "gpt-4o-mini",
@@ -124,9 +130,22 @@ async function persistConversation(env, sessionId, messages, assistantReply, sum
       const summaryData = await summaryResponse.json();
       const newSummary = summaryData?.choices?.[0]?.message?.content ?? "";
       if (newSummary) {
-        await env.DB.prepare(
+        // Tenta extrair o nome do paciente da primeira linha do resumo
+        const nameMatch = newSummary.match(/Identifica[cç][aã]o[:\s]+([A-Z][a-zA-Zaáéíóúàèìòùãõâêîôûç ]{2,40})/i)
+                       || newSummary.match(/paciente[:\s]+([A-Z][a-zA-Zaáéíóúàèìòùãõâêîôûç ]{2,40})/i);
+        const extractedName = nameMatch?.[1]?.trim() || null;
+
+        const updateStmts = [env.DB.prepare(
           "UPDATE conversations SET summary = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
-        ).bind(newSummary, convId).run();
+        ).bind(newSummary, convId)];
+
+        if (extractedName) {
+          updateStmts.push(env.DB.prepare(
+            "UPDATE conversations SET user_name = ? WHERE id = ? AND (user_name IS NULL OR user_name = '')"
+          ).bind(extractedName, convId));
+        }
+
+        await env.DB.batch(updateStmts);
       }
     }
   } catch (_) {
