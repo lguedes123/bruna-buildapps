@@ -1,7 +1,6 @@
 ﻿/**
- * POST /api/admin/init-db
- * Inicializa (ou atualiza) o banco D1 com todas as tabelas e dados iniciais.
- * Seguro para chamar mais de uma vez (idempotente).
+ * GET /api/admin/init-db-status
+ * POST /api/admin/init-db (já existe)
  */
 
 function json(data, status = 200) {
@@ -14,6 +13,34 @@ function json(data, status = 200) {
 function isAuthorized(request) {
   const cookie = request.headers.get('cookie') || '';
   return cookie.includes('admin_session=');
+}
+
+export async function onRequestGet(context) {
+  if (!isAuthorized(context.request)) return json({ error: "unauthorized" }, 401);
+
+  try {
+    // Checa se as tabelas existem
+    const result = await context.env.DB.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('configs', 'conversations', 'messages')"
+    ).all();
+
+    const tables = (result.results || []).map(r => r.name);
+    const initialized = tables.length === 3;
+
+    return json({
+      initialized,
+      tables_found: tables,
+      message: initialized
+        ? "Banco ja esta inicializado com todas as tabelas."
+        : `Faltam tabelas. Encontradas: ${tables.join(', ') || 'nenhuma'}`
+    });
+  } catch (error) {
+    return json({ 
+      initialized: false, 
+      error: error.message,
+      message: "Erro ao verificar status do banco." 
+    }, 500);
+  }
 }
 
 export async function onRequestPost(context) {
@@ -32,7 +59,7 @@ export async function onRequestPost(context) {
       );
     `);
 
-    // ── Tabela de conversas (uma por sessao de usuario) ──────────────────
+    // ── Tabela de conversas ──────────────────────────────────────────────
     await env.DB.exec(`
       CREATE TABLE IF NOT EXISTS conversations (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -100,7 +127,7 @@ Quando todos os dados forem coletados, informe a conclusao e gere o registro cli
 
     const SUMMARY_INITIAL = `O agente deve gerar um resumo clinico para a equipe de saude usando linguagem tecnica, objetiva e impessoal, traduzindo expressoes leigas para termos medicos sem alterar o sentido. Estrutura: Identificacao, Queixa Principal (uma frase), Historia da Molestia Atual (cronologica), Historico Medico (comorbidades, medicacoes, alergias, cirurgias). Proibido inventar dados. Identificar e destacar Sinais de Alerta (red flags) ao final.`;
 
-    const SUMMARY_UPDATE = `Atualizar dinamicamente o resumo clinico a cada nova mensagem, integrando dados na secao correta. Nao anexar frases ao fim — incorporar na estrutura existente. Contradico: priorizar afirmacao mais recente e retificar o dado obsoleto. Manter linguagem tecnica. Se nova mensagem revelar red flags, inseri-los imediatamente no bloco de destaque final.`;
+    const SUMMARY_UPDATE = `Atualizar dinamicamente o resumo clinico a cada nova mensagem, integrando dados na secao correta. Nao anexar frases ao fim — incorporar na estrutura existente. Contradicao: priorizar afirmacao mais recente e retificar o dado obsoleto. Manter linguagem tecnica. Se nova mensagem revelar red flags, inseri-los imediatamente no bloco de destaque final.`;
 
     const upsert = (key, val) => env.DB.prepare(
       "INSERT INTO configs (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP"

@@ -1,4 +1,55 @@
-﻿const API_BASE = "/api";
+﻿async function checkDatabaseStatus() {
+  try {
+    const res = await fetch(`${API_BASE}/admin/init-db`, { credentials: "include" });
+    if (!res.ok) return;  // Erro ou nao autorizado — ignora
+    const { initialized, message } = await res.json();
+    const card = document.getElementById("dbStatusCard");
+    const status = document.getElementById("dbStatus");
+    const btn = document.getElementById("initDbBtn");
+
+    if (!initialized) {
+      card.style.display = "block";
+      status.style.background = "#fce8e6";
+      status.style.color = "#c5221f";
+      status.textContent = "⚠️ Banco nao inicializado: " + message;
+      btn.style.display = "block";
+    } else {
+      card.style.display = "block";
+      status.style.background = "#e6f4ea";
+      status.style.color = "#1e7e34";
+      status.textContent = "✓ " + message;
+      btn.style.display = "none";
+    }
+  } catch (_) {}
+}
+
+async function initializeDatabase() {
+  if (!confirm("Isso vai criar as tabelas e dados iniciais. Prosseguir?")) return;
+  const btn = document.getElementById("initDbBtn");
+  btn.disabled = true;
+  btn.textContent = "Inicializando...";
+
+  try {
+    const res = await fetch(`${API_BASE}/admin/init-db`, {
+      method: "POST",
+      credentials: "include"
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showStatus("Banco inicializado com sucesso!", "success");
+      setTimeout(() => checkDatabaseStatus(), 1000);
+    } else {
+      showStatus(`Erro: ${data.message}`, "error");
+    }
+  } catch (err) {
+    showStatus(`Erro: ${err.message}`, "error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Inicializar Banco de Dados";
+  }
+}
+
+
 
 function showStatus(message, type = "success") {
   const el = document.getElementById("statusMessage");
@@ -105,5 +156,6 @@ function handleLogout() {
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("adminForm");
   if (form) form.addEventListener("submit", saveConfiguration);
+  checkDatabaseStatus();
   loadConfiguration();
 });
