@@ -1,9 +1,0 @@
-{
-  "name": "buildapps-r2",
-  "bucket": "buildapps",
-  "access": "private",
-  "region": "auto",
-  "bindings": [
-    "BUILDAPPS"
-  ]
-}

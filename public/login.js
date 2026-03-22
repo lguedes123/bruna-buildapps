@@ -3,7 +3,7 @@ const API_BASE = "/api";
 function showStatus(message, type = "success") {
   const statusEl = document.getElementById("statusMessage");
   statusEl.textContent = message;
-  statusEl.className = `status-message ${type}`;
+  statusEl.className = `login-status ${type}`;
 }
 
 async function handleLogin(e) {

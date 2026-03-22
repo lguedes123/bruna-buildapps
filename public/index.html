@@ -2,23 +2,50 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Chatbot de Anamnese - Projeto de Pesquisa Unicerrado-UFG</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <title>Assistente de Anamnese</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <main class="container">
-    <header class="topbar">
-      <h1 id="chatTitle">Chatbot de Anamnese - Projeto de Pesquisa Unicerrado-UFG</h1>
-      <a href="/admin.html">Admin</a>
+  <div class="wa-screen">
+
+    <!-- Header -->
+    <header class="wa-header">
+      <div class="avatar">🦹‍♀️</div>
+      <div class="info">
+        <div class="name" id="chatTitle">Assistente de Anamnese</div>
+        <div class="status" id="headerStatus">online</div>
+      </div>
+      <div class="actions">
+        <a href="/login.html">Admin</a>
+      </div>
     </header>
 
-    <section id="chatBox" class="chat-box"></section>
+    <!-- Wallpaper -->
+    <div class="wa-bg"></div>
 
-    <form id="chatForm" class="composer">
-      <textarea id="messageInput" rows="3" placeholder="Digite aqui"></textarea>
-      <button type="submit">Enviar</button>
-    </form>  </main>
+    <!-- Messages -->
+    <section id="chatMessages" class="wa-messages"></section>
+
+    <!-- Input -->
+    <div class="wa-input-area">
+      <div class="wa-input-wrap">
+        <textarea
+          id="messageInput"
+          rows="1"
+          placeholder="Digite uma mensagem"
+          autocomplete="off"
+        ></textarea>
+      </div>
+      <button class="wa-send-btn" id="sendBtn" type="button" aria-label="Enviar">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </div>
+
+  </div>
 
   <script src="/app.js"></script>
 </body>

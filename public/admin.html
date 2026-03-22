@@ -3,8 +3,108 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Admin - BuildApps Chatbot</title>
+  <title>Admin - Assistente de Anamnese</title>
   <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="admin-page">
+
+  <div class="admin-titlebar">
+    <h1>⚙️ Configurações</h1>
+    <a href="/index.html">← Chat</a>
+  </div>
+
+  <div class="admin-container">
+
+    <div id="statusMessage" class="status-message"></div>
+
+    <form id="adminForm">
+
+      <!-- Modelo de IA -->
+      <div class="admin-card">
+        <h2>Modelo de IA</h2>
+
+        <div class="form-group">
+          <div class="label-row">
+            <label>Provedor</label>
+          </div>
+          <input type="text" value="OpenAI" disabled style="opacity:0.6;cursor:not-allowed;">
+        </div>
+
+        <div class="form-group">
+          <div class="label-row">
+            <label>Modelo</label>
+            <span class="info-icon">?
+              <span class="tooltip">O modelo determina a capacidade da IA. gpt-4o é o mais capaz; gpt-4o-mini é mais rápido e econômico.</span>
+            </span>
+          </div>
+          <select id="model">
+            <option value="gpt-4o">GPT-4o — mais inteligente</option>
+            <option value="gpt-4o-mini" selected>GPT-4o Mini — padrão, rápido</option>
+            <option value="gpt-4-turbo">GPT-4 Turbo — intermediário</option>
+            <option value="gpt-4">GPT-4 — legado</option>
+            <option value="gpt-3.5-turbo">GPT-3.5 Turbo — mais econômico</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Prompt do sistema -->
+      <div class="admin-card">
+        <h2>Instruções do Assistente</h2>
+
+        <div class="form-group">
+          <div class="label-row">
+            <label>Prompt do sistema</label>
+            <span class="info-icon">?
+              <span class="tooltip">As instruções que definem o comportamento e personalidade do assistente. Seja específico sobre o contexto médico educacional.</span>
+            </span>
+          </div>
+          <textarea id="prompt" rows="5"
+            placeholder="Ex: Você é um assistente médico educacional especializado em anamnese. Apoie estudantes de medicina com linguagem didática...">
+          </textarea>
+        </div>
+
+        <div class="form-group">
+          <div class="label-row">
+            <label>Fluxo de atendimento</label>
+            <span class="info-icon">?
+              <span class="tooltip">Os passos que o assistente deve seguir durante uma consulta. Defina a sequência de perguntas e avaliações.</span>
+            </span>
+          </div>
+          <textarea id="flow" rows="5"
+            placeholder="Ex: 1. Coletar queixa principal&#10;2. Investigar história da doença atual&#10;3. Revisar sistemas...">
+          </textarea>
+        </div>
+      </div>
+
+      <!-- Público / metadados -->
+      <div class="admin-card">
+        <h2>Metadados do Chat</h2>
+
+        <div class="form-group">
+          <div class="label-row">
+            <label>Configuração pública (JSON)</label>
+            <span class="info-icon">?
+              <span class="tooltip">Define o título do chat e mensagem de boas-vindas. Ex: {"chatTitle":"Assistente","welcomeMessage":"Olá!"}</span>
+            </span>
+          </div>
+          <textarea id="public" rows="4"
+            placeholder='{"chatTitle":"Assistente de Anamnese","welcomeMessage":"Olá! Como posso ajudar?"}'>
+          </textarea>
+        </div>
+      </div>
+
+      <!-- Ações -->
+      <div class="admin-actions">
+        <button type="button" class="btn-secondary" onclick="handleLogout()">🚪 Sair</button>
+        <button type="submit" class="btn-primary">💾 Salvar</button>
+      </div>
+
+    </form>
+  </div>
+
+  <script src="/admin.js"></script>
+</body>
+</html>
   <style>
     .admin-container {
       max-width: 600px;
