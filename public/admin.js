@@ -64,6 +64,7 @@ async function loadConfiguration() {
 async function saveConfiguration(e) {
   e.preventDefault();
 
+
   const g = id => document.getElementById(id)?.value ?? "";
 
   const model           = g("model");
@@ -84,20 +85,43 @@ async function saveConfiguration(e) {
 
   try {
     // Salva modelo
-    const mRes = await fetch("/api/admin/models", {
+    await fetch("/api/admin/models", {
       method: "PUT", credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ model })
     });
-  const config = {
-    model: document.getElementById("model").value,
-    temperature: parseFloat(document.getElementById("temperature").value) || 0.7,
-    top_p: parseFloat(document.getElementById("top_p").value) || 1,
-    max_tokens: parseInt(document.getElementById("max_tokens").value) || 2048,
-    frequency_penalty: parseFloat(document.getElementById("frequency_penalty").value) || 0,
-    presence_penalty: parseFloat(document.getElementById("presence_penalty").value) || 0,
-    safety_filter: document.getElementById("safety_filter").checked
-  };
+
+    // Monta config com todos os parâmetros avançados
+    const config = {
+      model,
+      temperature: parseFloat(g("temperature")) || 0.7,
+      top_p: parseFloat(g("top_p")) || 1,
+      max_tokens: parseInt(g("max_tokens")) || 2048,
+      frequency_penalty: parseFloat(g("frequency_penalty")) || 0,
+      presence_penalty: parseFloat(g("presence_penalty")) || 0,
+      safety_filter: document.getElementById("safety_filter").checked
+    };
+
+    // Envia para o backend
+    const res = await fetch("/api/admin/config", {
+      method: "PUT", credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        config,
+        prompt,
+        flow,
+        public: publicData,
+        moderation_message,
+        summary_initial,
+        summary_update,
+        openai_api_key
+      })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    showStatus("Configurações salvas com sucesso.", "success");
+  } catch (error) {
+    showStatus(`Erro ao salvar: ${error.message}`, "error");
+  }
 }
 
 function handleLogout() {
