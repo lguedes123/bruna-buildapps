@@ -1,0 +1,10 @@
+{
+  "routes": [
+    "/assets/*",
+    "/chat/*"
+  ],
+  "cache": {
+    "defaultTTL": 300,
+    "staleWhileRevalidate": 60
+  }
+}

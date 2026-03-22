@@ -1,0 +1,4 @@
+1. Receber o request do frontend e validar headers.
+2. Consultar arquivos no bucket `buildapps` através da binding BUILDAPPS.
+3. Serializar o conteúdo em UTF-8 e voltar com 200 OK ou 404 caso o objeto não exista.
+4. Logar metadados para auditoria e armazenar eventuais falhas no próprio bucket.
