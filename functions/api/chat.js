@@ -14,19 +14,19 @@ export async function onRequestPost(context) {
 
     if (!messages.length) return json({ error: "messages e obrigatorio" }, 400);
 
-    // Busca configuracoes do D1 em paralelo
-    const [configRow, promptRow, flowRow, moderationRow, summaryInitialRow, summaryUpdateRow, apiKeyRow] = await Promise.all([
+    // Usa APENAS a variavel de ambiente para API key (nunca do banco)
+    const openaiApiKey = env.OPENAI_API_KEY;
+    if (!openaiApiKey) return json({ error: "OPENAI_API_KEY nao configurada nas variaveis de ambiente" }, 500);
+
+    // Busca configuracoes do D1 em paralelo (sem API key do banco)
+    const [configRow, promptRow, flowRow, moderationRow, summaryInitialRow, summaryUpdateRow] = await Promise.all([
       env.DB.prepare("SELECT value FROM configs WHERE key = 'openai_config' LIMIT 1").first(),
       env.DB.prepare("SELECT value FROM configs WHERE key = 'prompt' LIMIT 1").first(),
       env.DB.prepare("SELECT value FROM configs WHERE key = 'flow' LIMIT 1").first(),
       env.DB.prepare("SELECT value FROM configs WHERE key = 'moderation_message' LIMIT 1").first(),
       env.DB.prepare("SELECT value FROM configs WHERE key = 'summary_initial' LIMIT 1").first(),
-      env.DB.prepare("SELECT value FROM configs WHERE key = 'summary_update' LIMIT 1").first(),
-      env.DB.prepare("SELECT value FROM configs WHERE key = 'openai_api_key' LIMIT 1").first()
+      env.DB.prepare("SELECT value FROM configs WHERE key = 'summary_update' LIMIT 1").first()
     ]);
-
-    const openaiApiKey = env.OPENAI_API_KEY || apiKeyRow?.value || null;
-    if (!openaiApiKey) return json({ error: "OPENAI_API_KEY nao configurada" }, 500);
 
     const config             = configRow ? JSON.parse(configRow.value) : { model: "gpt-4o-mini" };
     const prompt             = promptRow?.value || "";
