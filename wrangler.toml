@@ -5,4 +5,4 @@ pages_build_output_dir = "./public"
 [[d1_databases]]
 binding = "DB"
 database_name = "bruna-buildapps"
-database_id = "b7504904-63dd-4048-8454-1a6e562c9184"
+database_id = "6fc6f3e5-248a-449b-93eb-266a0dfdadc6"
