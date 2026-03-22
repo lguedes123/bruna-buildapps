@@ -94,7 +94,7 @@ export async function onRequestPut(context) {
   } catch (error) {
     return json({ error: error.message }, 500);
   }
-}
+
   const expected = request.headers.get("x-admin-token");
   return expected && expected === "buildapps-admin-2026";
 }
