@@ -104,17 +104,17 @@ export async function onRequestPost(context) {
 
   try {
     // ── Tabela de configuracoes ──────────────────────────────────────────
-    await env.DB.exec(`
+    await env.DB.prepare(`
       CREATE TABLE IF NOT EXISTS configs (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
         key        TEXT UNIQUE NOT NULL,
         value      TEXT,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
+      )
+    `).run();
 
     // ── Tabela de conversas ──────────────────────────────────────────────
-    await env.DB.exec(`
+    await env.DB.prepare(`
       CREATE TABLE IF NOT EXISTS conversations (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
         session_id TEXT UNIQUE NOT NULL,
@@ -122,24 +122,24 @@ export async function onRequestPost(context) {
         summary    TEXT,
         started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
+      )
+    `).run();
 
     // ── Tabela de mensagens ──────────────────────────────────────────────
-    await env.DB.exec(`
+    await env.DB.prepare(`
       CREATE TABLE IF NOT EXISTS messages (
         id              INTEGER PRIMARY KEY AUTOINCREMENT,
         conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
         role            TEXT NOT NULL CHECK(role IN ('user','assistant')),
         content         TEXT NOT NULL,
         created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
+      )
+    `).run();
 
-    await env.DB.exec(`
+    await env.DB.prepare(`
       CREATE INDEX IF NOT EXISTS idx_messages_conversation
-        ON messages(conversation_id);
-    `);
+        ON messages(conversation_id)
+    `).run();
 
     // ── Dados iniciais (upsert) ──────────────────────────────────────────
     const PROMPT = `# CONTEXTO E PAPEL
