@@ -1,0 +1,15 @@
+name = "buildapps-chatbot"
+compatibility_date = "2026-03-22"
+pages_build_output_dir = "./public"
+
+[[r2_buckets]]
+binding = "BUILDAPPS"
+bucket_name = "buildapps"
+
+[vars]
+APP_CONFIG_KEY = "config.json"
+APP_PROMPT_KEY = "prompt.txt"
+APP_FLOW_KEY = "flow.txt"
+APP_PUBLIC_KEY = "public.json"
+APP_SECRET_OPENAI_KEY = "secrets/openai.json"
+APP_SECRET_GEMINI_KEY = "secrets/gemini.json"

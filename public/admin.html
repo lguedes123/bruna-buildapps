@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="container">
+    <header class="topbar">
+      <h1>Administração</h1>
+      <a href="/index.html">Chat</a>
+    </header>
+
+    <div class="admin-grid">
+      <label>Token Admin
+        <input id="adminToken" type="password">
+      </label>
+
+      <label>Provider
+        <select id="provider">
+          <option value="openai">OpenAI</option>
+          <option value="gemini">Gemini</option>
+        </select>
+      </label>
+
+      <label>Modelo
+        <input id="model">
+      </label>
+
+      <label>Temperatura
+        <input id="temperature" type="number" step="0.1" min="0" max="2">
+      </label>
+
+      <label>Top-p
+        <input id="top_p" type="number" step="0.1" min="0" max="1">
+      </label>
+
+      <label>Max tokens
+        <input id="max_tokens" type="number" min="1" max="16384">
+      </label>
+
+      <label>Frequency penalty
+        <input id="frequency_penalty" type="number" step="0.1" min="-2" max="2">
+      </label>
+
+      <label>Presence penalty
+        <input id="presence_penalty" type="number" step="0.1" min="-2" max="2">
+      </label>
+
+      <label>Safety hate
+        <select id="safety_hate">
+          <option>BLOCK_NONE</option>
+          <option>BLOCK_ONLY_HIGH</option>
+          <option>BLOCK_MEDIUM_AND_ABOVE</option>
+          <option>BLOCK_LOW_AND_ABOVE</option>
+        </select>
+      </label>
+
+      <label>Safety harassment
+        <select id="safety_harassment">
+          <option>BLOCK_NONE</option>
+          <option>BLOCK_ONLY_HIGH</option>
+          <option>BLOCK_MEDIUM_AND_ABOVE</option>
+          <option>BLOCK_LOW_AND_ABOVE</option>
+        </select>
+      </label>
+
+      <label>Safety sexual
+        <select id="safety_sexual">
+          <option>BLOCK_NONE</option>
+          <option>BLOCK_ONLY_HIGH</option>
+          <option>BLOCK_MEDIUM_AND_ABOVE</option>
+          <option>BLOCK_LOW_AND_ABOVE</option>
+        </select>
+      </label>
+
+      <label>Safety dangerous
+        <select id="safety_dangerous">
+          <option>BLOCK_NONE</option>
+          <option>BLOCK_ONLY_HIGH</option>
+          <option>BLOCK_MEDIUM_AND_ABOVE</option>
+          <option>BLOCK_LOW_AND_ABOVE</option>
+        </select>
+      </label>
+
+      <label>Chave OpenAI
+        <input id="openai_key" type="password">
+      </label>
+
+      <label>Chave Gemini
+        <input id="gemini_key" type="password">
+      </label>
+
+      <label class="full">Prompt
+        <textarea id="prompt" rows="6"></textarea>
+      </label>
+
+      <label class="full">Fluxo
+        <textarea id="flow" rows="8"></textarea>
+      </label>
+
+      <label class="full">Título do Chat
+        <input id="chatTitleInput">
+      </label>
+
+      <label class="full">Mensagem Inicial
+        <textarea id="welcomeMessage" rows="3"></textarea>
+      </label>
+
+      <div class="full actions">
+        <button id="loadBtn" type="button">Carregar</button>
+        <button id="saveBtn" type="button">Salvar</button>
+      </div>
+
+      <pre id="status" class="full status"></pre>
+    </div>
+  </main>
+
+  <script src="/admin.js"></script>
+</body>
+</html>
