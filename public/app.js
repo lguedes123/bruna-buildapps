@@ -275,12 +275,19 @@ async function checkCpfAndStart() {
       addMessage("assistant", "Vamos iniciar a anamnese.", true);
     }
     cpfStep = 0;
+    askFirstAnamneseQuestion();
   } catch (err) {
     console.error("checkCpfAndStart error", err);
     addMessage("assistant", "Mas vamos iniciar a anamnese.", true);
     cpfStep = 0;
+    askFirstAnamneseQuestion();
   }
 }
+
+function askFirstAnamneseQuestion() {
+  addMessage("assistant", "Para começar, qual é a sua principal queixa hoje?", true);
+}
+
 
 function setLoading(state) {
   isLoading = state;
