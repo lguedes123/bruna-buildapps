@@ -91,7 +91,18 @@ export async function onRequestPost(context) {
         console.error("openai_api_key fetch error", fetchErr);
       }
     }
-    if (!openaiApiKey) return json({ error: "OPENAI_API_KEY nao configurada em variavel de ambiente nem no DB configs" }, 500);
+
+    // rejeita placeholder típico e valores inválidos
+    if (openaiApiKey && typeof openaiApiKey === 'string') {
+      const isPlaceholder = openaiApiKey.startsWith('sk-seu-') || openaiApiKey.includes('****************');
+      const isShort = openaiApiKey.length < 40;
+      if (isPlaceholder || isShort) {
+        console.error('API key invalida detectada em openaiApiKey', openaiApiKey);
+        openaiApiKey = null;
+      }
+    }
+
+    if (!openaiApiKey) return json({ error: "OPENAI_API_KEY nao configurada em variavel de ambiente nem no DB configs ou chave invalida" }, 500);
 
     // Busca configs do banco e do R2
     const [configRow, promptRow, flowRow, moderationRow, summaryInitialRow, summaryUpdateRow, r2Config] = await Promise.all([
