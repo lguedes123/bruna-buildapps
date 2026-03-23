@@ -1,10 +1,8 @@
-const chatMessages = document.getElementById("chatMessages");
-const input = document.getElementById("messageInput");
-const sendBtn = document.getElementById("sendBtn");
-const chatTitle = document.getElementById("chatTitle");
-const headerStatus = document.getElementById("headerStatus");
-
-
+let chatMessages;
+let input;
+let sendBtn;
+let chatTitle;
+let headerStatus;
 
 let userType = null;
 let cpf = null;
@@ -14,7 +12,63 @@ let profissionalNome = null;
 let cpfStep = 0; // 0: não iniciado, 1: aguardando cpf paciente, 2: aguardando cpf profissional
 const messages = [];
 let isLoading = false;
-let statusText = headerStatus.textContent;
+let statusText = "";
+
+function initDom() {
+  chatMessages = document.getElementById("chatMessages");
+  input = document.getElementById("messageInput");
+  sendBtn = document.getElementById("sendBtn");
+  chatTitle = document.getElementById("chatTitle");
+  headerStatus = document.getElementById("headerStatus");
+  statusText = headerStatus ? headerStatus.textContent : "";
+
+  if (input) {
+    input.disabled = true;
+    input.style.cursor = "not-allowed";
+    input.addEventListener("input", () => {
+      input.style.height = "auto";
+      input.style.height = Math.min(input.scrollHeight, 120) + "px";
+    });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        send();
+      }
+    });
+  }
+
+  if (sendBtn) {
+    sendBtn.disabled = true;
+    sendBtn.style.cursor = "not-allowed";
+    sendBtn.addEventListener("click", send);
+  }
+
+  const restartLink = document.getElementById("restartLink");
+  if (restartLink) {
+    restartLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      resetChat();
+    });
+  }
+}
+
+function resetChat() {
+  userType = null;
+  cpf = null;
+  profissionalCpf = null;
+  userName = null;
+  profissionalNome = null;
+  cpfStep = 0;
+  isLoading = false;
+  messages.length = 0;
+  if (chatMessages) chatMessages.innerHTML = "";
+  if (input) {
+    input.value = "";
+    input.style.height = "auto";
+  }
+  if (headerStatus && statusText) headerStatus.textContent = statusText;
+  showUserTypeSelection();
+}
 
 // ID de sessao unico por visita
 const SESSION_ID = (() => {
@@ -26,33 +80,30 @@ const SESSION_ID = (() => {
   return id;
 })();
 
-// Auto-resize textarea
-input.addEventListener("input", () => {
-  input.style.height = "auto";
-  input.style.height = Math.min(input.scrollHeight, 120) + "px";
-});
-
-// Send on Enter (Shift+Enter = new line)
-input.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    send();
-  }
-});
-
-sendBtn.addEventListener("click", send);
+// inicializa quando DOM ficar pronto
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => {
+    initDom();
+    boot();
+  });
+} else {
+  initDom();
+  boot();
+}
 
 
 // Exibe seleção de tipo de usuário no início
 function showUserTypeSelection() {
+  // Mensagem de conversa inicial
+  addMessage("assistant", "Olá, vamos iniciar o processo de Anamnese Médica.\nPor favor se identifique:");
+
   const selectionDiv = document.createElement("div");
   selectionDiv.className = "user-type-selection";
   selectionDiv.innerHTML = `
-    <div class="user-type-title">Olá, vamos iniciar o processo de Anamnese Médica.<br>Por favor se identifique:</div>
     <div class="user-type-buttons">
-      <button data-type="medico">Sou médico</button>
       <button data-type="paciente">Sou paciente</button>
-      <button data-type="profissional">Sou profissional de saúde</button>
+      <button data-type="medico">Sou médico</button>
+      <button data-type="profissional">Sou da saúde</button>
     </div>
   `;
   chatMessages.appendChild(selectionDiv);
@@ -61,6 +112,14 @@ function showUserTypeSelection() {
     btn.onclick = () => {
       userType = btn.getAttribute("data-type");
       selectionDiv.remove();
+      if (input) {
+        input.disabled = false;
+        input.style.cursor = "text";
+      }
+      if (sendBtn) {
+        sendBtn.disabled = false;
+        sendBtn.style.cursor = "pointer";
+      }
       askName();
     };
   });
@@ -102,9 +161,6 @@ function isValidCPF(strCPF) {
   if (rest !== parseInt(strCPF.substring(10, 11))) return false;
   return true;
 }
-
-boot();
-
 
 async function boot() {
   showUserTypeSelection();
@@ -219,15 +275,17 @@ async function checkCpfAndStart() {
       addMessage("assistant", "Vamos iniciar a anamnese.", true);
     }
     cpfStep = 0;
-  } catch {
-    addMessage("assistant", "Erro ao verificar CPF.", true);
+  } catch (err) {
+    console.error("checkCpfAndStart error", err);
+    addMessage("assistant", "Mas vamos iniciar a anamnese.", true);
+    cpfStep = 0;
   }
 }
 
 function setLoading(state) {
   isLoading = state;
-  sendBtn.disabled = state;
-  headerStatus.textContent = state ? "digitando..." : statusText;
+  if (sendBtn) sendBtn.disabled = state;
+  if (headerStatus) headerStatus.textContent = state ? "digitando..." : statusText;
 }
 
 function addMessage(role, content, silent = false) {

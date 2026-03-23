@@ -13,10 +13,26 @@ export async function onRequest(context) {
       let exists = false, nome = null;
       if (userType === 'paciente' && cpf) {
         const row = await env.DB.prepare("SELECT user_name FROM conversations WHERE cpf = ? LIMIT 1").bind(cpf).first();
-        if (row && row.user_name) { exists = true; nome = row.user_name; }
+        if (row && row.user_name) {
+          exists = true;
+          nome = row.user_name;
+        } else {
+          // Se paciente não encontrado, cria registro na tabela
+          await env.DB.prepare("INSERT INTO conversations (created_at, updated_at, user_type, cpf, user_name) VALUES (CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?, ?) ON CONFLICT(cpf) DO UPDATE SET updated_at = CURRENT_TIMESTAMP")
+            .bind(userType, cpf, body.user_name || null)
+            .run();
+        }
       } else if ((userType === 'medico' || userType === 'profissional') && cpf && profissionalCpf) {
         const row = await env.DB.prepare("SELECT user_name FROM conversations WHERE cpf = ? AND profissional_cpf = ? LIMIT 1").bind(cpf, profissionalCpf).first();
-        if (row && row.user_name) { exists = true; nome = row.user_name; }
+        if (row && row.user_name) {
+          exists = true;
+          nome = row.user_name;
+        } else {
+          // Se profissional não encontrado, cria registro na tabela
+          await env.DB.prepare("INSERT INTO conversations (created_at, updated_at, user_type, cpf, profissional_cpf, user_name) VALUES (CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?, ?, ?) ON CONFLICT(cpf, profissional_cpf) DO UPDATE SET updated_at = CURRENT_TIMESTAMP")
+            .bind(userType, cpf, profissionalCpf, body.user_name || null)
+            .run();
+        }
       }
       return json({ exists, nome });
     } catch {

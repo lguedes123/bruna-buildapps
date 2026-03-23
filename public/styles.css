@@ -25,63 +25,54 @@ body {
 }
 
 /* --- Header --- */
-.wa-header {
-  background: #075e54;
-  color: #fff;
-  padding: 10px 16px;
+.wa-header-cols {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 12px;
+  background: #fff;
+  padding: 10px 16px;
+  border-bottom: 1px solid #d8d8d8;
   position: relative;
   z-index: 10;
   flex-shrink: 0;
 }
-.wa-header .avatar {
-  width: auto;
-  height: 40px;
-  border-radius: 0;
-  background: transparent;
+.wa-header-col-logo {
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  justify-content: flex-start;
+  width: 40%;
 }
-.header-logo {
-  height: 36px;
-  width: auto;
-  max-width: 160px;
+.wa-header-logo-large {
+  height: 56px;
+  max-width: 180px;
   object-fit: contain;
-  display: block;
 }
-.wa-header .info {
-  flex: 1;
-}
-.wa-header .info .name {
-  font-weight: 600;
-  font-size: 16px;
-  line-height: 1.2;
-}
-.wa-header .info .status {
-  font-size: 12px;
-  opacity: 0.85;
-}
-.wa-header .actions {
+.wa-header-col-content {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  justify-content: center;
+  width: 60%;
 }
-.wa-header .actions a {
-  color: rgba(255,255,255,0.85);
-  text-decoration: none;
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.3);
-  transition: background 0.2s;
+.wa-header-title-row {
+  font-weight: 700;
+  font-size: 18px;
+  color: #075e54;
+  margin-bottom: 3px;
 }
-.wa-header .actions a:hover {
-  background: rgba(255,255,255,0.15);
+.wa-header-link-row {
+  font-size: 14px;
+  display: flex;
+  justify-content: flex-end;
 }
-
+.wa-header-restart-link {
+  color: #128c7e;
+  text-decoration: underline;
+  font-weight: 600;
+  cursor: pointer;
+}
+.wa-header-restart-link:hover {
+  color: #075e54;
+}
 /* --- Background wallpaper --- */
 .wa-bg {
   position: absolute;
@@ -142,6 +133,53 @@ body {
   position: relative;
   min-width: 80px;
   box-shadow: 0 1px 2px rgba(0,0,0,0.13);
+}
+.user-type-selection {
+  margin-bottom: 12px;
+  margin-left: 10px;
+  width: 75%;
+  max-width: 75%;
+}
+.user-type-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.user-type-buttons button {
+  width: 100%;
+  text-align: left;
+  padding: 9px 10px;
+  border: 1px solid #c5dcd7;
+  background: #f7fff8;
+  color: #075e54;
+  font-size: 15px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.user-type-buttons button:hover {
+  background: #e6f7f0;
+}
+.user-type-buttons button:active {
+  background: #d0eee4;
+}
+.wa-header-col-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 60%;
+  align-items: flex-end;
+}
+.wa-header-title-row {
+  font-weight: 700;
+  font-size: 18px;
+  color: #075e54;
+  margin-bottom: 3px;
+  text-align: right;
+  width: 100%;
 }
 .msg.user .bubble {
   background: #dcf8c6;
@@ -247,8 +285,8 @@ body {
 }
 .wa-input-wrap textarea::placeholder { color: #999; }
 .wa-send-btn {
-  width: 46px;
-  height: 46px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background: #075e54;
   border: none;
@@ -263,6 +301,11 @@ body {
 }
 .wa-send-btn:hover { background: #128c7e; }
 .wa-send-btn:active { background: #064940; }
+.wa-send-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: #075e54;
+}
 
 /* ============================================
    ADMIN PANEL STYLES
