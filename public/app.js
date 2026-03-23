@@ -102,8 +102,7 @@ function showUserTypeSelection() {
   selectionDiv.innerHTML = `
     <div class="user-type-buttons">
       <button data-type="paciente">Sou paciente</button>
-      <button data-type="medico">Sou médico</button>
-      <button data-type="profissional">Sou da saúde</button>
+      <button data-type="profissional">Sou profissional de saúde</button>
     </div>
   `;
   chatMessages.appendChild(selectionDiv);
@@ -228,10 +227,9 @@ async function send() {
   setLoading(true);
 
   try {
-    // Envia user_type, cpf, profissional_cpf, user_name na primeira mensagem útil
-    const isFirstMessage = messages.length === 1;
+    // Sempre envia user_type, cpf, profissional_cpf, user_name para garantir registro correto
     const payload = { messages, session_id: SESSION_ID };
-    if (isFirstMessage && userType) payload.user_type = userType;
+    if (userType) payload.user_type = userType;
     if (cpf) payload.cpf = cpf;
     if (profissionalCpf) payload.profissional_cpf = profissionalCpf;
     if (userName) payload.user_name = userName;
@@ -270,9 +268,17 @@ async function checkCpfAndStart() {
     });
     const data = await res.json();
     if (data.exists && data.nome) {
-      addMessage("assistant", `Olá, ${data.nome}! Vamos iniciar a anamnese.`, true);
+      if (userType === "profissional") {
+        addMessage("assistant", `Olá, ${data.nome}! Vamos iniciar a anamnese.\nPergunte o seguinte ao paciente:`, true);
+      } else {
+        addMessage("assistant", `Olá, ${data.nome}! Vamos iniciar a anamnese.`, true);
+      }
     } else {
-      addMessage("assistant", "Vamos iniciar a anamnese.", true);
+      if (userType === "profissional") {
+        addMessage("assistant", "Vamos iniciar a anamnese.\nPergunte o seguinte ao paciente:", true);
+      } else {
+        addMessage("assistant", "Vamos iniciar a anamnese.", true);
+      }
     }
     cpfStep = 0;
     askFirstAnamneseQuestion();
@@ -285,7 +291,11 @@ async function checkCpfAndStart() {
 }
 
 function askFirstAnamneseQuestion() {
-  addMessage("assistant", "Para começar, qual é a sua principal queixa hoje?", true);
+  if (userType === "profissional") {
+    addMessage("assistant", "1. Qual é a sua principal queixa hoje?", true);
+  } else {
+    addMessage("assistant", "Para começar, qual é a sua principal queixa hoje?", true);
+  }
 }
 
 
