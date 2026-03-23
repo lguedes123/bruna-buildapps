@@ -79,8 +79,19 @@ export async function onRequestPost(context) {
     if (!messages.length) return json({ error: "messages e obrigatorio" }, 400);
 
     // Segurança: nunca expor secrets ao cliente
-    const openaiApiKey = env.OPENAI_API_KEY;
-    if (!openaiApiKey) return json({ error: "OPENAI_API_KEY nao configurada nas variaveis de ambiente" }, 500);
+    let openaiApiKey = env.OPENAI_API_KEY;
+    if (!openaiApiKey) {
+      // fallback para DB configs.fetch: openai_api_key
+      try {
+        const row = await env.DB.prepare("SELECT value FROM configs WHERE key = ? LIMIT 1").bind("openai_api_key").first();
+        if (row && row.value) {
+          openaiApiKey = row.value;
+        }
+      } catch (fetchErr) {
+        console.error("openai_api_key fetch error", fetchErr);
+      }
+    }
+    if (!openaiApiKey) return json({ error: "OPENAI_API_KEY nao configurada em variavel de ambiente nem no DB configs" }, 500);
 
     // Busca configs do banco e do R2
     const [configRow, promptRow, flowRow, moderationRow, summaryInitialRow, summaryUpdateRow, r2Config] = await Promise.all([
