@@ -189,6 +189,15 @@ export async function onRequestPost(context) {
 
 
 async function persistConversation(env, sessionId, messages, assistantReply, summaryInitialInstr, summaryUpdateInstr, config, openaiApiKey, userType, cpf, profissionalCpf, userName) {
+    // Remove marcações markdown básicas do texto
+    function stripMarkdown(text) {
+      if (!text) return '';
+      return text
+        .replace(/[#*_`~>-]+/g, '') // remove #, *, _, `, ~, >, -
+        .replace(/\n{2,}/g, '\n') // remove quebras de linha duplas
+        .replace(/\s{2,}/g, ' ')   // espaços duplos
+        .trim();
+    }
   // Utilidades locais
   function fillTemplate(template, data) {
     return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => data[key] ?? '');
@@ -251,9 +260,10 @@ async function persistConversation(env, sessionId, messages, assistantReply, sum
         conversa: messages.map(m => `${m.role}: ${m.content}`).join('\n')
       };
       const filled = fillTemplate(formTemplate, data);
+      const cleanFilled = stripMarkdown(filled);
       await env.DB.prepare(
         "UPDATE conversations SET summary = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
-      ).bind(filled, convId).run();
+      ).bind(cleanFilled, convId).run();
     } else {
       // fallback: mantém lógica anterior
       if (!summaryInitialInstr && !summaryUpdateInstr) return;
@@ -277,13 +287,14 @@ async function persistConversation(env, sessionId, messages, assistantReply, sum
         const summaryData = await summaryResponse.json();
         const newSummary = summaryData?.choices?.[0]?.message?.content ?? "";
         if (newSummary) {
+          const cleanSummary = stripMarkdown(newSummary);
           // Tenta extrair o nome do paciente da primeira linha do resumo
-          const nameMatch = newSummary.match(/Identifica[cç][aã]o[:\s]+([A-Z][a-zA-Zaáéíóúàèìòùãõâêîôûç ]{2,40})/i)
-                             || newSummary.match(/paciente[:\s]+([A-Z][a-zA-Zaáéíóúàèìòùãõâêîôûç ]{2,40})/i);
+          const nameMatch = cleanSummary.match(/Identifica[cç][aã]o[:\s]+([A-Z][a-zA-Zaáéíóúàèìòùãõâêîôûç ]{2,40})/i)
+                             || cleanSummary.match(/paciente[:\s]+([A-Z][a-zA-Zaáéíóúàèìòùãõâêîôûç ]{2,40})/i);
           const extractedName = nameMatch?.[1]?.trim() || null;
           const updateStmts = [env.DB.prepare(
             "UPDATE conversations SET summary = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
-          ).bind(newSummary, convId)];
+          ).bind(cleanSummary, convId)];
           if (extractedName) {
             updateStmts.push(env.DB.prepare(
               "UPDATE conversations SET user_name = ? WHERE id = ? AND (user_name IS NULL OR user_name = '')"

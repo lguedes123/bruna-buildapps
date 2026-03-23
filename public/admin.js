@@ -1,4 +1,35 @@
-﻿
+﻿// Função para remover marcações markdown básicas (###, **, __, *, _, etc)
+function stripMarkdown(text) {
+  if (!text) return '';
+  return text
+    .replace(/[#*_`~>-]+/g, '') // remove #, *, _, `, ~, >, -
+    .replace(/\n{2,}/g, '\n') // remove quebras de linha duplas
+    .replace(/\s{2,}/g, ' ')   // espaços duplos
+    .trim();
+}
+
+// Adiciona botão de download do relatório TXT se houver summary carregado
+async function addDownloadButton(summary, userName) {
+  const area = document.getElementById('downloadArea');
+  area.innerHTML = '';
+  if (!summary) return;
+  const btn = document.createElement('button');
+  btn.textContent = 'Baixar relatório TXT';
+  btn.className = 'btn-secondary';
+  btn.style.marginBottom = '10px';
+  btn.onclick = function() {
+    const clean = stripMarkdown(summary);
+    const blob = new Blob([clean], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `relatorio_${(userName||'conversa').replace(/\s+/g,'_')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { document.body.removeChild(a); }, 100);
+  };
+  area.appendChild(btn);
+}
+
 
 function showStatus(message, type = "success") {
   const el = document.getElementById("statusMessage");
@@ -135,4 +166,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("adminForm");
   if (form) form.addEventListener("submit", saveConfiguration);
   loadConfiguration();
+
+  // Se estivermos na página de conversa específica, tenta buscar o summary e mostrar botão
+  const url = new URL(window.location.href);
+  const convId = url.searchParams.get('id');
+  if (convId) {
+    fetch(`/api/admin/conversation?id=${convId}`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(data => {
+        if (data?.conversation?.summary) {
+          addDownloadButton(data.conversation.summary, data.conversation.user_name);
+        }
+      });
+  }
 });
